@@ -198,7 +198,7 @@ export default function App() {
 
   // RENDERIZAÇÃO DO APLICATIVO OPERACIONAL
   return (
-    <div className="min-h-screen bg-[#0b0f19] text-slate-100 flex flex-col font-sans pb-24 md:pb-8">
+    <div className="min-h-screen bg-[#0b0f19] text-slate-100 flex flex-col font-sans pb-24 md:pb-8 w-full max-w-full overflow-x-hidden">
       {/* 1. Infraestrutura PWA - Banner Superior de Instalação no Celular */}
       <PWAInstallBanner />
 
@@ -206,18 +206,18 @@ export default function App() {
       <OfflineIndicator />
 
       {/* Barra de Navegação Superior / Header */}
-      <header className="border-b border-slate-800/80 bg-[#0b0f19]/90 backdrop-blur-md sticky top-0 z-30 px-4 py-3">
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
+      <header className="border-b border-slate-800/80 bg-[#0b0f19]/95 backdrop-blur-md sticky top-0 z-30 px-3 sm:px-4 py-2.5 sm:py-3 w-full">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
           {/* Logo Brand */}
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-400 to-cyan-500 p-0.5 shadow-lg shadow-emerald-500/10 flex-shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-400 to-cyan-500 p-0.5 shadow-lg shadow-emerald-500/10 flex-shrink-0">
               <div className="w-full h-full bg-[#0b0f19] rounded-[10px] flex items-center justify-center">
-                <Dumbbell className="w-5 h-5 text-emerald-400" />
+                <Dumbbell className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
               </div>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-base font-black tracking-tight text-white flex items-center gap-1">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h1 className="text-sm sm:text-base font-black tracking-tight text-white flex items-center gap-1">
                   Titan<span className="text-emerald-400">Fit</span>
                 </h1>
 
@@ -225,94 +225,86 @@ export default function App() {
                 {isDono(usuario) ? (
                   <button
                     onClick={() => setModalDonoAberto(true)}
-                    className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-500 text-slate-950 flex items-center gap-1 shadow-md shadow-amber-500/20 cursor-pointer hover:scale-105 transition"
+                    className="text-[9px] sm:text-[10px] font-black uppercase px-1.5 sm:px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-500 text-slate-950 flex items-center gap-1 shadow-md shadow-amber-500/20 cursor-pointer hover:scale-105 transition flex-shrink-0"
                     title="Acesso Dono Master Ativo (Clique para abrir Painel)"
                   >
-                    <Crown className="w-3 h-3 text-slate-950 fill-slate-950" /> DONO MASTER
+                    <Crown className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-slate-950 fill-slate-950" /> DONO MASTER
                   </button>
                 ) : usuario.plano === 'premium' ? (
-                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-slate-950 flex items-center gap-1 shadow-sm">
-                    <Crown className="w-3 h-3" /> PREMIUM VIP
+                  <span className="text-[9px] sm:text-[10px] font-black uppercase px-1.5 sm:px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-slate-950 flex items-center gap-1 shadow-sm flex-shrink-0">
+                    <Crown className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> VIP
                   </span>
                 ) : (
                   <button
                     onClick={() => setModalUpgradeAberto(true)}
-                    className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 hover:border-purple-500 hover:text-purple-300 transition cursor-pointer flex items-center gap-1"
+                    className="text-[9px] sm:text-[10px] font-black uppercase px-1.5 sm:px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 hover:border-purple-500 hover:text-purple-300 transition cursor-pointer flex items-center gap-1 flex-shrink-0"
                     title="Clique para fazer upgrade para Premium VIP"
                   >
                     <span>BÁSICO</span>
-                    <span className="text-purple-400 font-bold">+ Upgrade R$2,10</span>
+                    <span className="text-purple-400 font-bold hidden sm:inline">+ Upgrade</span>
                   </button>
                 )}
               </div>
-              <p className="text-[10px] text-slate-400">Fitness, Biomecânica & Nutrição IA</p>
+              <p className="text-[9px] sm:text-[10px] text-slate-400 hidden xs:block truncate">Fitness, Biomecânica & Nutrição IA</p>
             </div>
           </div>
 
           {/* Ações Rápidas do Topo */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             {/* Botão Painel do Dono */}
             <button
               onClick={() => setModalDonoAberto(true)}
-              className="flex items-center gap-1.5 bg-gradient-to-r from-amber-500/20 to-yellow-500/10 hover:from-amber-500/30 text-amber-300 border border-amber-500/40 px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer shadow-sm"
-              title="Ver Acesso e Credenciais do Dono (destaquenewspg@gmail.com)"
+              className="flex items-center gap-1 bg-gradient-to-r from-amber-500/20 to-yellow-500/10 hover:from-amber-500/30 text-amber-300 border border-amber-500/40 p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-bold transition cursor-pointer shadow-sm"
+              title="Acesso e Credenciais do Dono"
             >
-              <Crown className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Acesso Dono</span>
+              <Crown className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+              <span className="hidden md:inline">Acesso Dono</span>
             </button>
 
             {/* Botão para alternar e demonstrar a Landing Page de Vendas */}
             <button
               onClick={() => setVisualizacao('landing')}
-              className="flex items-center gap-1.5 bg-gradient-to-r from-purple-900/60 to-slate-900 hover:from-purple-800 text-purple-300 border border-purple-500/30 px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer shadow-sm"
+              className="flex items-center gap-1 bg-gradient-to-r from-purple-900/60 to-slate-900 hover:from-purple-800 text-purple-300 border border-purple-500/30 p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-bold transition cursor-pointer shadow-sm"
               title="Abrir Página de Vendas Cinematográfica"
             >
-              <ShoppingBag className="w-3.5 h-3.5 text-purple-400" />
-              <span className="hidden sm:inline">Página de Vendas</span>
+              <ShoppingBag className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
+              <span className="hidden md:inline">Vendas</span>
             </button>
 
             {/* Sincronização em Nuvem */}
             <button
               onClick={handleSincronizarNuvem}
               disabled={sincronizandoNuvem}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+              className={`flex items-center gap-1 p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
                 avisoSucessoNuvem
                   ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
                   : 'bg-slate-800/90 text-slate-300 border-slate-700 hover:text-white'
               }`}
-              title="Sincronizar dados com a Nuvem (Supabase / Firebase)"
+              title="Sincronizar dados com a Nuvem"
             >
-              <Cloud className={`w-3.5 h-3.5 ${sincronizandoNuvem ? 'animate-spin text-cyan-400' : 'text-cyan-400'}`} />
+              <Cloud className={`w-3.5 h-3.5 flex-shrink-0 ${sincronizandoNuvem ? 'animate-spin text-cyan-400' : 'text-cyan-400'}`} />
               <span className="hidden md:inline">
                 {avisoSucessoNuvem ? 'Nuvem OK!' : sincronizandoNuvem ? 'Sincronizando...' : 'Nuvem'}
               </span>
             </button>
 
-            <button
-              onClick={() => setModalHospedagemAberto(true)}
-              className="hidden lg:flex items-center gap-1.5 bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700/80 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer"
-              title="Guia de Hospedagem Gratuita & Domínio"
-            >
-              <Globe className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Hospedar Grátis</span>
-            </button>
-
             {/* Ação Principal: Câmera IA com Verificação de Plano */}
             <button
               onClick={handleAbrirCameraIA}
-              className="flex items-center gap-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 px-3 py-1.5 rounded-xl text-xs font-bold shadow-md shadow-emerald-500/20 transition cursor-pointer active:scale-95"
+              className="flex items-center gap-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 px-2 sm:px-3 py-1.5 rounded-xl text-xs font-bold shadow-md shadow-emerald-500/20 transition cursor-pointer active:scale-95"
+              title="Escanear Prato por IA"
             >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Escanear Prato</span>
+              <Sparkles className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="hidden sm:inline">Escanear Prato</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* Conteúdo Principal com Abas de Navegação */}
-      <main className="max-w-6xl w-full mx-auto px-4 py-5 flex-1">
-        {/* Navegação Desktop por Abas */}
-        <div className="hidden md:flex items-center gap-2 bg-[#111827] p-1.5 rounded-2xl border border-slate-800 mb-6">
+      <main className="max-w-6xl w-full mx-auto px-3 sm:px-4 py-4 sm:py-5 flex-1">
+        {/* Navegação Desktop por Abas (Exibida apenas em telas grandes) */}
+        <div className="hidden lg:flex items-center gap-2 bg-[#111827] p-1.5 rounded-2xl border border-slate-800 mb-6">
           <button
             onClick={() => setAbaAtiva('treinos')}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
@@ -362,25 +354,24 @@ export default function App() {
           </button>
         </div>
 
-        {/* Banner de Demonstração / Alternar para Plano Básico ou Premium para teste */}
-        <div className="mb-4 bg-slate-900/60 border border-slate-800 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2 text-slate-300">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>
-              Você está conectado como: <strong className="text-white">{usuario.nome || usuario.email}</strong>
+        {/* Banner de Status da Conta / Alternar para Plano Básico ou Premium para teste */}
+        <div className="mb-4 bg-slate-900/60 border border-slate-800 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+          <div className="flex items-center gap-2 text-slate-300 min-w-0">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0"></span>
+            <span className="truncate">
+              Conectado como: <strong className="text-white">{usuario.nome || usuario.email}</strong>
             </span>
-            <span className="text-slate-500">|</span>
-            <span>
-              Plano: <strong className="text-purple-400 uppercase">{usuario.plano}</strong>
+            <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 flex-shrink-0">
+              {usuario.plano}
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => salvarSessaoUsuario({ ...usuario, plano: usuario.plano === 'premium' ? 'basico' : 'premium' })}
               className="text-[11px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700 transition cursor-pointer"
             >
-              Alternar para Plano {usuario.plano === 'premium' ? 'Básico (Testar Bloqueio)' : 'Premium VIP'}
+              Testar como {usuario.plano === 'premium' ? 'Plano Básico' : 'Plano Premium VIP'}
             </button>
             <button
               onClick={() => setModalAuthAberto(true)}
@@ -395,32 +386,32 @@ export default function App() {
         {abaAtiva === 'treinos' && (
           <div className="space-y-4">
             {/* Seletor de Sub-Abas de Treino */}
-            <div className="flex items-center gap-2 bg-[#111827] p-1.5 rounded-2xl border border-slate-800">
+            <div className="flex items-center gap-1.5 sm:gap-2 bg-[#111827] p-1 sm:p-1.5 rounded-2xl border border-slate-800">
               <button
                 onClick={() => setSubAbaTreinos('personalizado')}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition cursor-pointer ${
                   subAbaTreinos === 'personalizado'
                     ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
               >
-                <Activity className="w-4 h-4 text-emerald-400" />
-                <span>Meu Treino Adaptado Anti-Lesão</span>
-                <span className="text-[10px] bg-slate-950/60 text-purple-300 px-1.5 py-0.2 rounded font-black">
+                <Activity className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                <span className="truncate">Treino VIP Anti-Lesão</span>
+                <span className="text-[9px] sm:text-[10px] bg-slate-950/60 text-purple-300 px-1 py-0.2 rounded font-black flex-shrink-0">
                   VIP
                 </span>
               </button>
 
               <button
                 onClick={() => setSubAbaTreinos('todos')}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition cursor-pointer ${
                   subAbaTreinos === 'todos'
                     ? 'bg-emerald-500 text-slate-950 shadow-md font-bold'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
               >
-                <Dumbbell className="w-4 h-4" />
-                <span>2.000+ Exercícios Gerais</span>
+                <Dumbbell className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="truncate">2.000+ Exercícios</span>
               </button>
             </div>
 
@@ -495,7 +486,7 @@ export default function App() {
       </main>
 
       {/* Barra de Navegação Inferior para Celular / PWA (Estilo Nativo App Store) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0b0f19]/95 backdrop-blur-xl border-t border-slate-800/80 px-2 py-2 flex items-center justify-around">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0b0f19]/95 backdrop-blur-xl border-t border-slate-800/80 px-2 py-2 flex items-center justify-around">
         <button
           onClick={() => setAbaAtiva('treinos')}
           className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition cursor-pointer ${

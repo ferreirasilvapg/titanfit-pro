@@ -36,42 +36,42 @@ export const PWAInstallBanner: React.FC = () => {
 
   return (
     <>
-      <div className="bg-gradient-to-r from-emerald-950/80 via-slate-900 to-cyan-950/80 border-b border-emerald-500/30 px-4 py-2.5 shadow-lg backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 p-0.5 flex-shrink-0 shadow-md">
+      <div className="bg-gradient-to-r from-emerald-950/80 via-slate-900 to-cyan-950/80 border-b border-emerald-500/30 px-3 sm:px-4 py-2 sm:py-2.5 shadow-lg backdrop-blur-md sticky top-0 z-40 w-full overflow-hidden">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-2 sm:gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 p-0.5 flex-shrink-0 shadow-md">
               <img
                 src="/icon.svg"
                 alt="TitanFit Ícone"
                 className="w-full h-full rounded-[10px] object-cover bg-[#0b0f19]"
               />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-sm text-white tracking-wide">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-bold text-xs sm:text-sm text-white tracking-wide truncate">
                   Instalar TitanFit no Celular
                 </span>
-                <span className="text-[10px] font-semibold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded">
-                  PWA 100% Grátis
+                <span className="text-[9px] sm:text-[10px] font-semibold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded flex-shrink-0">
+                  PWA 100% GRÁTIS
                 </span>
               </div>
-              <p className="text-xs text-slate-300">
+              <p className="text-[11px] sm:text-xs text-slate-300 truncate">
                 Acesse offline com ícone na tela inicial sem precisar de loja
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             <button
               onClick={handleInstalar}
-              className="flex items-center gap-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-xs px-3.5 py-1.5 rounded-lg shadow-sm transition active:scale-95 cursor-pointer"
+              className="flex items-center gap-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-xs px-2.5 sm:px-3.5 py-1.5 rounded-lg shadow-sm transition active:scale-95 cursor-pointer whitespace-nowrap"
             >
-              <Download className="w-3.5 h-3.5" />
+              <Download className="w-3.5 h-3.5 flex-shrink-0" />
               <span>Instalar App</span>
             </button>
             <button
               onClick={() => setFoiFechado(true)}
-              className="text-slate-400 hover:text-white p-1 rounded-md hover:bg-slate-800 transition"
+              className="text-slate-400 hover:text-white p-1 rounded-md hover:bg-slate-800 transition flex-shrink-0"
               title="Dispensar aviso"
             >
               <X className="w-4 h-4" />
