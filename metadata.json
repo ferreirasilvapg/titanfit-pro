@@ -1,0 +1,6 @@
+{
+  "name": "TitanFit - Fitness & Nutrição PWA",
+  "description": "Aplicativo PWA completo de treino e nutrição com acervo biomecânico de exercícios em loop, IA para leitura de pratos e rastreador de hidratação e macros.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
