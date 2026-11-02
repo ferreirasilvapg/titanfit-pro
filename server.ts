@@ -17,96 +17,17 @@ app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 const apiKey = process.env.GEMINI_API_KEY || '';
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
+import { BANCO_TACO_COMPLETO, normalizarTexto } from './src/core/tacoDatabase.ts';
+
 // Cache em memória para pesquisas nutricionais instantâneas (<1ms)
 const nutritionCache: Record<string, any[]> = {};
 
-/**
- * BASE VERIFICADA DE ALIMENTOS: TABELA TACO (UNICAMP) & USDA FOODDATA CENTRAL
- * Mais de 60 alimentos brasileiros e globais cobrindo Frutas, Verduras, Legumes, Doces, Proteínas e Carboidratos
- * Valores rigorosamente calculados por 100g com calorias pela equação de Atwater.
- */
-const BASE_NUTRICAO_GLOBAL = [
-  // --- DOCES E SOBREMESAS ---
-  { id: 'alim-d-1', nome: 'Brigadeiro Tradicional', categoria: 'doce', porcao: '100g', porcaoUnitaria: '1 unidade (~25g)', calorias: 410, proteinas: 6.2, carboidratos: 58.5, gorduras: 17.5, fibras: 1.8, dica: 'Alto teor de carboidratos simples e gorduras lácteas.' },
-  { id: 'alim-d-2', nome: 'Pudim de Leite Condensado com Calda', categoria: 'doce', porcao: '100g', porcaoUnitaria: '1 fatia média (~120g)', calorias: 245, proteinas: 5.8, carboidratos: 37.2, gorduras: 8.5, fibras: 0.0, dica: 'Sobremesa clássica com proteína de leite e ovos.' },
-  { id: 'alim-d-3', nome: 'Doce de Leite Pastoso', categoria: 'doce', porcao: '100g', porcaoUnitaria: '1 colher sopa (~20g)', calorias: 315, proteinas: 6.5, carboidratos: 55.0, gorduras: 7.5, fibras: 0.0, dica: 'Ótima opção de carboidrato denso para pós-treino ou pré-treino imediato.' },
-  { id: 'alim-d-4', nome: 'Goiabada Cascão', categoria: 'doce', porcao: '100g', porcaoUnitaria: '1 fatia (~40g)', calorias: 270, proteinas: 0.5, carboidratos: 68.0, gorduras: 0.1, fibras: 4.2, dica: 'Rico em fibras da goiaba e glicose rápida para reposição de glicogênio.' },
-  { id: 'alim-d-5', nome: 'Paçoca de Amendoim Tipo Rolha', categoria: 'doce', porcao: '100g', porcaoUnitaria: '1 unidade (~20g)', calorias: 510, proteinas: 14.0, carboidratos: 52.0, gorduras: 28.0, fibras: 5.0, dica: 'Caloricamente denso, rico em arginina e gorduras insaturadas do amendoim.' },
-  { id: 'alim-d-6', nome: 'Chocolate Amargo 70% Cacau', categoria: 'doce', porcao: '100g', porcaoUnitaria: '4 quadradinhos (~25g)', calorias: 540, proteinas: 7.8, carboidratos: 46.0, gorduras: 38.0, fibras: 8.5, dica: 'Elevada concentração de polifenóis antioxidantes e magnésio.' },
-  { id: 'alim-d-7', nome: 'Beijinho de Coco Tradicional', categoria: 'doce', porcao: '100g', porcaoUnitaria: '1 unidade (~25g)', calorias: 380, proteinas: 4.8, carboidratos: 56.0, gorduras: 15.5, fibras: 2.5, dica: 'Gorduras de cadeia média do coco combinadas com leite condensado.' },
-  { id: 'alim-d-8', nome: 'Bolo de Cenoura com Calda de Chocolate', categoria: 'doce', porcao: '100g', porcaoUnitaria: '1 fatia (~80g)', calorias: 360, proteinas: 4.5, carboidratos: 52.0, gorduras: 15.0, fibras: 2.0, dica: 'Carboidratos moderados com energia rápida.' },
-  { id: 'alim-d-9', nome: 'Sorvete de Baunilha / Creme', categoria: 'doce', porcao: '100g', porcaoUnitaria: '1 bola (~60g)', calorias: 207, proteinas: 3.5, carboidratos: 24.0, gorduras: 11.0, fibras: 0.7, dica: 'Sobremesa láctea refrescante.' },
-  { id: 'alim-d-10', nome: 'Gelatina Pronta Sabor Frutas', categoria: 'doce', porcao: '100g', porcaoUnitaria: '1 taça (~120g)', calorias: 62, proteinas: 1.6, carboidratos: 14.0, gorduras: 0.0, fibras: 0.0, dica: 'Baixa densidade calórica e hidratação.' },
-  { id: 'alim-d-11', nome: 'Cocada Branca Tradicional', categoria: 'doce', porcao: '100g', porcaoUnitaria: '1 unidade (~50g)', calorias: 430, proteinas: 3.2, carboidratos: 65.0, gorduras: 18.0, fibras: 4.5, dica: 'Fonte natural de fibras do coco ralado fresco.' },
-
-  // --- FRUTAS IN NATURA ---
-  { id: 'alim-f-1', nome: 'Banana Prata', categoria: 'fruta', porcao: '100g', porcaoUnitaria: '1 unidade média (~90g)', calorias: 89, proteinas: 1.3, carboidratos: 23.0, gorduras: 0.1, fibras: 2.0, dica: 'Excelente fonte de potássio e carboidratos de absorção equilibrada.' },
-  { id: 'alim-f-2', nome: 'Maçã Fuji com Casca', categoria: 'fruta', porcao: '100g', porcaoUnitaria: '1 unidade média (~130g)', calorias: 52, proteinas: 0.3, carboidratos: 13.8, gorduras: 0.2, fibras: 2.4, dica: 'Rica em pectina para modulação da microbiota intestinal.' },
-  { id: 'alim-f-3', nome: 'Manga Palmer Madura', categoria: 'fruta', porcao: '100g', porcaoUnitaria: '1 fatia grande (~150g)', calorias: 60, proteinas: 0.8, carboidratos: 15.0, gorduras: 0.4, fibras: 1.6, dica: 'Rica em betacaroteno e vitamina C.' },
-  { id: 'alim-f-4', nome: 'Açaí Puro (Polpa sem Xarope)', categoria: 'fruta', porcao: '100g', porcaoUnitaria: '1 tigela (~200g)', calorias: 65, proteinas: 1.5, carboidratos: 6.2, gorduras: 4.0, fibras: 3.2, dica: 'Antocianinas potentes e gorduras monoinsaturadas saudáveis.' },
-  { id: 'alim-f-5', nome: 'Morango Fresco in Natura', categoria: 'fruta', porcao: '100g', porcaoUnitaria: '8 morangos (~120g)', calorias: 32, proteinas: 0.7, carboidratos: 7.7, gorduras: 0.3, fibras: 2.0, dica: 'Baixíssima caloria com alto volume sacietógeno.' },
-  { id: 'alim-f-6', nome: 'Melancia Fresca', categoria: 'fruta', porcao: '100g', porcaoUnitaria: '1 fatia média (~250g)', calorias: 30, proteinas: 0.6, carboidratos: 7.6, gorduras: 0.2, fibras: 0.4, dica: 'Rica em citrulina (vasodilatação muscular) e 92% de água.' },
-  { id: 'alim-f-7', nome: 'Abacate in Natura', categoria: 'fruta', porcao: '100g', porcaoUnitaria: '1/2 unidade (~100g)', calorias: 160, proteinas: 2.0, carboidratos: 8.5, gorduras: 14.7, fibras: 6.7, dica: 'Gorduras monoinsaturadas protetoras e altíssimo teor de fibras solúveis.' },
-  { id: 'alim-f-8', nome: 'Mamão Papaia', categoria: 'fruta', porcao: '100g', porcaoUnitaria: '1/2 unidade (~140g)', calorias: 43, proteinas: 0.5, carboidratos: 10.8, gorduras: 0.1, fibras: 1.7, dica: 'Contém papaína, enzima que auxilia na digestão das proteínas.' },
-  { id: 'alim-f-9', nome: 'Laranja Pera Fresca', categoria: 'fruta', porcao: '100g', porcaoUnitaria: '1 unidade (~130g)', calorias: 47, proteinas: 0.9, carboidratos: 11.8, gorduras: 0.1, fibras: 2.4, dica: 'Consumir com o bagaço eleva a saciedade e absorção de fibras.' },
-  { id: 'alim-f-10', nome: 'Uva Thompson / Verde sem Semente', categoria: 'fruta', porcao: '100g', porcaoUnitaria: '1 cacho pequeno (~100g)', calorias: 69, proteinas: 0.7, carboidratos: 18.1, gorduras: 0.2, fibras: 0.9, dica: 'Carboidratos imediatos de glicose e frutose.' },
-  { id: 'alim-f-11', nome: 'Abacaxi Pérola Fresco', categoria: 'fruta', porcao: '100g', porcaoUnitaria: '2 fatias (~160g)', calorias: 48, proteinas: 0.5, carboidratos: 12.6, gorduras: 0.1, fibras: 1.4, dica: 'Bromelina ativa para otimização da absorção de aminoácidos.' },
-  { id: 'alim-f-12', nome: 'Maracujá (Polpa Fresca)', categoria: 'fruta', porcao: '100g', porcaoUnitaria: '1 unidade (~50g polpa)', calorias: 68, proteinas: 2.2, carboidratos: 13.5, gorduras: 0.7, fibras: 3.3, dica: 'Rico em passiflorina e fibras nas sementes.' },
-  { id: 'alim-f-13', nome: 'Kiwi Verde Fresco', categoria: 'fruta', porcao: '100g', porcaoUnitaria: '1 unidade (~75g)', calorias: 61, proteinas: 1.1, carboidratos: 14.7, gorduras: 0.5, fibras: 3.0, dica: 'Mais vitamina C por 100g que a laranja e ação prebiótica.' },
-  { id: 'alim-f-14', nome: 'Pitaya Vermelha', categoria: 'fruta', porcao: '100g', porcaoUnitaria: '1/2 unidade (~100g)', calorias: 51, proteinas: 1.4, carboidratos: 11.0, gorduras: 0.6, fibras: 3.0, dica: 'Betacianinas e sementes ricas em ácidos graxos essenciais.' },
-
-  // --- VERDURAS E LEGUMES ---
-  { id: 'alim-v-1', nome: 'Alface Americana Fresca', categoria: 'verdura', porcao: '100g', porcaoUnitaria: '1 prato de sobremesa (~50g)', calorias: 15, proteinas: 1.4, carboidratos: 2.9, gorduras: 0.2, fibras: 1.3, dica: 'Volume sacietógeno com quase zero impacto calórico.' },
-  { id: 'alim-v-2', nome: 'Rúcula Fresca in Natura', categoria: 'verdura', porcao: '100g', porcaoUnitaria: '1 porção generosa (~60g)', calorias: 25, proteinas: 2.6, carboidratos: 3.7, gorduras: 0.7, fibras: 1.6, dica: 'Rica em nitratos naturais que aumentam o óxido nítrico e o pump muscular.' },
-  { id: 'alim-v-3', nome: 'Couve Manteiga Refogada no Azeite', categoria: 'verdura', porcao: '100g', porcaoUnitaria: '2 colheres sopa (~60g)', calorias: 90, proteinas: 3.0, carboidratos: 8.7, gorduras: 5.0, fibras: 4.2, dica: 'Altíssimo teor de cálcio biodisponível e magnésio.' },
-  { id: 'alim-v-4', nome: 'Brócolis Cozido no Vapor', categoria: 'verdura', porcao: '100g', porcaoUnitaria: '1 xícara cheia (~100g)', calorias: 35, proteinas: 2.8, carboidratos: 6.6, gorduras: 0.4, fibras: 3.3, dica: 'Indol-3-carbinol para equilíbrio hormonal e fibras densas.' },
-  { id: 'alim-v-5', nome: 'Espinafre Cozido no Vapor', categoria: 'verdura', porcao: '100g', porcaoUnitaria: '1 xícara (~90g)', calorias: 23, proteinas: 3.0, carboidratos: 3.6, gorduras: 0.4, fibras: 2.2, dica: 'Rico em ferro vegetal e fitoecdisteroides.' },
-  { id: 'alim-v-6', nome: 'Cenoura Crua Ralada', categoria: 'verdura', porcao: '100g', porcaoUnitaria: '1 unidade média (~100g)', calorias: 41, proteinas: 0.9, carboidratos: 9.6, gorduras: 0.2, fibras: 2.8, dica: 'Excelente para saúde visual e fibras insolúveis.' },
-  { id: 'alim-v-7', nome: 'Tomate Italiano in Natura', categoria: 'verdura', porcao: '100g', porcaoUnitaria: '1 unidade média (~90g)', calorias: 18, proteinas: 0.9, carboidratos: 3.9, gorduras: 0.2, fibras: 1.2, dica: 'Maior fonte natural de licopeno protetor celular.' },
-  { id: 'alim-v-8', nome: 'Abobrinha Verde Cozida', categoria: 'verdura', porcao: '100g', porcaoUnitaria: '3 colheres sopa (~80g)', calorias: 17, proteinas: 1.2, carboidratos: 3.1, gorduras: 0.3, fibras: 1.0, dica: 'Digestão levíssima e perfeita para dietas de déficit calórico.' },
-  { id: 'alim-v-9', nome: 'Beterraba Cozida', categoria: 'verdura', porcao: '100g', porcaoUnitaria: '2 fatias grossas (~80g)', calorias: 44, proteinas: 1.7, carboidratos: 9.6, gorduras: 0.2, fibras: 2.0, dica: 'Potente vasodilatador natural para melhora de performance no treino.' },
-  { id: 'alim-v-10', nome: 'Pepino Japonês com Casca', categoria: 'verdura', porcao: '100g', porcaoUnitaria: '1/2 unidade (~80g)', calorias: 15, proteinas: 0.7, carboidratos: 3.6, gorduras: 0.1, fibras: 0.5, dica: 'Excelente para reidratação e diurese fisiológica.' },
-  { id: 'alim-v-11', nome: 'Couve-Flor Cozida no Vapor', categoria: 'verdura', porcao: '100g', porcaoUnitaria: '1 xícara (~100g)', calorias: 25, proteinas: 1.9, carboidratos: 5.0, gorduras: 0.3, fibras: 2.0, dica: 'Substituto com baixo carboidrato para purês e massas.' },
-  { id: 'alim-v-12', nome: 'Berinjela Refogada', categoria: 'verdura', porcao: '100g', porcaoUnitaria: '2 colheres sopa (~70g)', calorias: 35, proteinas: 1.0, carboidratos: 6.0, gorduras: 1.0, fibras: 2.5, dica: 'Nasunina e fibras solúveis protetoras do colesterol.' },
-
-  // --- PROTEÍNAS DE ALTO VALOR BIOLÓGICO ---
-  { id: 'alim-p-1', nome: 'Peito de Frango Grelhado', categoria: 'proteina', porcao: '100g', porcaoUnitaria: '1 filé médio (~150g)', calorias: 159, proteinas: 32.0, carboidratos: 0.0, gorduras: 2.5, fibras: 0.0, dica: 'Padrão ouro em proteína magra com aminograma completo.' },
-  { id: 'alim-p-2', nome: 'Patinho Bovino Moído Grelhado', categoria: 'proteina', porcao: '100g', porcaoUnitaria: '1 porção média (~120g)', calorias: 185, proteinas: 30.5, carboidratos: 0.0, gorduras: 6.2, fibras: 0.0, dica: 'Rico em creatina natural, ferro heme e vitamina B12.' },
-  { id: 'alim-p-3', nome: 'Filé de Tilápia Grelhada', categoria: 'proteina', porcao: '100g', porcaoUnitaria: '1 filé grande (~150g)', calorias: 128, proteinas: 26.2, carboidratos: 0.0, gorduras: 2.7, fibras: 0.0, dica: 'Digestão ultrarrápida ideal para o jantar.' },
-  { id: 'alim-p-4', nome: 'Filé de Salmão Grelhado', categoria: 'proteina', porcao: '100g', porcaoUnitaria: '1 posta média (~140g)', calorias: 208, proteinas: 20.4, carboidratos: 0.0, gorduras: 13.4, fibras: 0.0, dica: 'Riquíssimo em Ômega-3 (EPA/DHA) anti-inflamatório.' },
-  { id: 'alim-p-5', nome: 'Ovo de Galinha Cozido', categoria: 'proteina', porcao: '100g', porcaoUnitaria: '1 unidade (~50g)', calorias: 155, proteinas: 13.0, carboidratos: 1.1, gorduras: 11.0, fibras: 0.0, dica: 'Colina para neurotransmissores e gema rica em luteína.' },
-  { id: 'alim-p-6', nome: 'Clara de Ovo Cozida', categoria: 'proteina', porcao: '100g', porcaoUnitaria: '1 clara (~33g)', calorias: 52, proteinas: 11.0, carboidratos: 0.7, gorduras: 0.2, fibras: 0.0, dica: 'Albumina pura sem gordura para bater metas de proteína.' },
-  { id: 'alim-p-7', nome: 'Queijo Cottage 0% Gordura', categoria: 'proteina', porcao: '100g', porcaoUnitaria: '2 colheres sopa (~60g)', calorias: 98, proteinas: 12.5, carboidratos: 3.4, gorduras: 4.3, fibras: 0.0, dica: 'Caseína de absorção lenta, perfeito para ceia.' },
-  { id: 'alim-p-8', nome: 'Queijo Minas Frescal', categoria: 'proteina', porcao: '100g', porcaoUnitaria: '1 fatia grossa (~50g)', calorias: 240, proteinas: 17.5, carboidratos: 3.2, gorduras: 17.8, fibras: 0.0, dica: 'Laticínio típico brasileiro fonte rica em cálcio.' },
-  { id: 'alim-p-9', nome: 'Whey Protein Concentrado 80%', categoria: 'proteina', porcao: '100g', porcaoUnitaria: '1 scoop (~30g)', calorias: 400, proteinas: 80.0, carboidratos: 8.3, gorduras: 5.0, fibras: 0.0, dica: 'Pico rápido de leucina e síntese proteica muscular.' },
-  { id: 'alim-p-10', nome: 'Whey Protein Isolado 90%', categoria: 'proteina', porcao: '100g', porcaoUnitaria: '1 scoop (~30g)', calorias: 375, proteinas: 90.0, carboidratos: 1.5, gorduras: 0.8, fibras: 0.0, dica: 'Pureza máxima quase isenta de lactose e gordura.' },
-  { id: 'alim-p-11', nome: 'Tofu Firme Orgânico', categoria: 'proteina', porcao: '100g', porcaoUnitaria: '1 fatia grossa (~80g)', calorias: 76, proteinas: 8.1, carboidratos: 1.9, gorduras: 4.8, fibras: 0.3, dica: 'Proteína vegetal de soja com isoflavonas.' },
-
-  // --- CARBOIDRATOS COMPLEXOS E GRÃOS ---
-  { id: 'alim-c-1', nome: 'Arroz Branco Cozido', categoria: 'carboidrato', porcao: '100g', porcaoUnitaria: '4 colheres sopa (~100g)', calorias: 128, proteinas: 2.5, carboidratos: 28.1, gorduras: 0.2, fibras: 1.6, dica: 'Base da dieta brasileira com amilose de fácil digestão.' },
-  { id: 'alim-c-2', nome: 'Arroz Integral Cozido', categoria: 'carboidrato', porcao: '100g', porcaoUnitaria: '4 colheres sopa (~100g)', calorias: 124, proteinas: 2.6, carboidratos: 25.8, gorduras: 1.0, fibras: 2.7, dica: 'Baixo índice glicêmico e rico em vitaminas do complexo B.' },
-  { id: 'alim-c-3', nome: 'Feijão Carioca Cozido', categoria: 'carboidrato', porcao: '100g', porcaoUnitaria: '1 concha média (~130g)', calorias: 76, proteinas: 4.8, carboidratos: 13.6, gorduras: 0.5, fibras: 8.5, dica: 'Recordista em fibras alimentares e ferro.' },
-  { id: 'alim-c-4', nome: 'Feijão Preto Cozido', categoria: 'carboidrato', porcao: '100g', porcaoUnitaria: '1 concha média (~130g)', calorias: 77, proteinas: 4.5, carboidratos: 14.0, gorduras: 0.5, fibras: 8.4, dica: 'Rico em antocianinas e saciedade prolongada.' },
-  { id: 'alim-c-5', nome: 'Batata Doce Cozida', categoria: 'carboidrato', porcao: '100g', porcaoUnitaria: '1 unidade média (~140g)', calorias: 77, proteinas: 1.4, carboidratos: 18.4, gorduras: 0.1, fibras: 2.2, dica: 'Carboidrato clássico do fisiculturismo para energia constante.' },
-  { id: 'alim-c-6', nome: 'Batata Inglesa Cozida', categoria: 'carboidrato', porcao: '100g', porcaoUnitaria: '1 unidade média (~120g)', calorias: 52, proteinas: 1.2, carboidratos: 11.9, gorduras: 0.1, fibras: 1.3, dica: 'Maior índice de saciedade por caloria entre todos os alimentos.' },
-  { id: 'alim-c-7', nome: 'Flocos de Aveia Integral', categoria: 'carboidrato', porcao: '100g', porcaoUnitaria: '3 colheres sopa (~40g)', calorias: 385, proteinas: 14.0, carboidratos: 67.0, gorduras: 7.0, fibras: 10.0, dica: 'Betaglucana comprovada na redução de colesterol.' },
-  { id: 'alim-c-8', nome: 'Mandioca / Aipim Cozido', categoria: 'carboidrato', porcao: '100g', porcaoUnitaria: '1 pedaço médio (~100g)', calorias: 125, proteinas: 0.6, carboidratos: 30.1, gorduras: 0.3, fibras: 1.6, dica: 'Energia pura sem glúten para treinos pesados.' },
-  { id: 'alim-c-9', nome: 'Goma de Tapioca Pronta', categoria: 'carboidrato', porcao: '100g', porcaoUnitaria: '3 colheres sopa (~60g)', calorias: 240, proteinas: 0.0, carboidratos: 60.0, gorduras: 0.0, fibras: 0.5, dica: 'Carboidrato simples ideal para antes ou logo após o treino.' },
-  { id: 'alim-c-10', nome: 'Pão de Forma 100% Integral', categoria: 'carboidrato', porcao: '100g', porcaoUnitaria: '2 fatias (~50g)', calorias: 230, proteinas: 11.0, carboidratos: 40.0, gorduras: 2.4, fibras: 8.4, dica: 'Grãos integrais com digestão lenta.' },
-  { id: 'alim-c-11', nome: 'Macarrão de Sêmola Cozido', categoria: 'carboidrato', porcao: '100g', porcaoUnitaria: '1 prato raso (~150g)', calorias: 140, proteinas: 5.0, carboidratos: 28.5, gorduras: 0.8, fibras: 1.8, dica: 'Combustível anabólico clássico para atletas.' },
-  { id: 'alim-c-12', nome: 'Cuscuz de Milho Cozido', categoria: 'carboidrato', porcao: '100g', porcaoUnitaria: '1 fatia média (~100g)', calorias: 112, proteinas: 2.2, carboidratos: 25.0, gorduras: 0.7, fibras: 2.0, dica: 'Patrimônio brasileiro prático e livre de gorduras.' },
-
-  // --- GORDURAS BOAS E OLEAGINOSAS ---
-  { id: 'alim-g-1', nome: 'Pasta de Amendoim Integral', categoria: 'gordura', porcao: '100g', porcaoUnitaria: '1 colher sopa (~15g)', calorias: 590, proteinas: 28.0, carboidratos: 20.0, gorduras: 50.0, fibras: 7.3, dica: 'Gorduras boas, vitamina E e densidade energética.' },
-  { id: 'alim-g-2', nome: 'Azeite de Oliva Extra Virgem', categoria: 'gordura', porcao: '100g', porcaoUnitaria: '1 colher sopa (~13ml)', calorias: 884, proteinas: 0.0, carboidratos: 0.0, gorduras: 100.0, fibras: 0.0, dica: 'Ácido oleico protetor cardiovascular e antioxidante.' },
-  { id: 'alim-g-3', nome: 'Castanha-do-Pará', categoria: 'gordura', porcao: '100g', porcaoUnitaria: '2 unidades (~10g)', calorias: 656, proteinas: 14.3, carboidratos: 12.3, gorduras: 66.4, fibras: 7.5, dica: 'A maior concentração de selênio biológico do planeta.' },
-  { id: 'alim-g-4', nome: 'Semente de Chia', categoria: 'gordura', porcao: '100g', porcaoUnitaria: '1 colher sopa (~15g)', calorias: 486, proteinas: 16.5, carboidratos: 42.1, gorduras: 30.7, fibras: 34.4, dica: 'Mais de 34% de fibras e alto teor de ômega-3 vegetal (ALA).' }
-];
+const BASE_NUTRICAO_GLOBAL = BANCO_TACO_COMPLETO;
 
 /**
  * ROTA DE RECONHECIMENTO INFINITO DE ALIMENTOS: MANUAIS OU DIGITADOS
- * Suporta busca por qualquer fruta, verdura, legume, doce, refeição ou termo regional.
- * Integra TACO (UNICAMP), USDA e Inteligência Artificial Gemini 2.5 Flash com cálculo de Atwater.
+ * Suporta busca por qualquer fruta, verdura, legume, doce, pães, refeições ou termo regional.
+ * Integra TACO (UNICAMP), USDA, Open Food Facts (+3 milhões de itens) e Inteligência Artificial Gemini 2.5 Flash.
  */
 app.all(['/api/nutrition-search', '/api/alimentos/busca'], async (req, res) => {
   try {
@@ -114,32 +35,38 @@ app.all(['/api/nutrition-search', '/api/alimentos/busca'], async (req, res) => {
     const categoriaFiltro = (req.query.categoria || req.body.categoria || '').toString().toLowerCase().trim();
 
     if (!termo && !categoriaFiltro) {
-      // Retorna seleção representativa balanceada das principais categorias
       return res.json({
         sucesso: true,
         total: BASE_NUTRICAO_GLOBAL.length,
         origem: 'base-taco-usda-oficial',
-        alimentos: BASE_NUTRICAO_GLOBAL.slice(0, 16)
+        alimentos: BASE_NUTRICAO_GLOBAL.slice(0, 20)
       });
     }
 
-    const termoNorm = termo.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const termoNorm = normalizarTexto(termo);
+    const palavrasTermo = termoNorm.split(' ').filter(Boolean);
 
-    // 1. VERIFICAÇÃO INSTANTÂNEA NO BANCO LOCAL TACO/USDA
+    // 1. VERIFICAÇÃO INSTANTÂNEA NO BANCO OFICIAL TACO/UNICAMP (+100 ALIMENTOS BRASILEIROS)
     let resultadosLocais = BASE_NUTRICAO_GLOBAL.filter((item) => {
-      const nomeNorm = item.nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      const bateTexto = !termoNorm || nomeNorm.includes(termoNorm) || item.categoria.includes(termoNorm);
-      const bateCat = !categoriaFiltro || categoriaFiltro === 'todos' || item.categoria === categoriaFiltro;
-      return bateTexto && bateCat;
+      const nomeNorm = normalizarTexto(item.nome);
+      const catNorm = normalizarTexto(item.categoria);
+      const bateCat = !categoriaFiltro || categoriaFiltro === 'todos' || catNorm === categoriaFiltro;
+
+      if (!bateCat) return false;
+      if (!termoNorm) return true;
+
+      // Correspondência por texto completo ou por palavras
+      if (nomeNorm.includes(termoNorm)) return true;
+      return palavrasTermo.every((p) => nomeNorm.includes(p));
     });
 
-    // Se encontrou itens suficientes no catálogo local verificado, retorna imediatamente (<1ms)
-    if (resultadosLocais.length >= 1 && termo.length < 4) {
+    // Se encontrou no banco oficial verificado TACO, retorna imediatamente (<1ms)
+    if (resultadosLocais.length > 0) {
       return res.json({
         sucesso: true,
         termo,
         total: resultadosLocais.length,
-        origem: 'taco-usda-cache-instantaneo',
+        origem: 'taco-unicamp-oficial',
         alimentos: resultadosLocais
       });
     }
@@ -241,11 +168,10 @@ Responda ESTRITAMENTE em formato JSON com o seguinte esquema (array de 1 a 3 var
       }
     }
 
-    // 4. Fallback de busca aproximada no banco local
+    // 4. Fallback de busca aproximada no banco local com normalização
     const fallbackBusca = BASE_NUTRICAO_GLOBAL.filter((item) => {
-      const nome = item.nome.toLowerCase();
-      const palavras = termoNorm.split(' ').filter(Boolean);
-      return palavras.some((p: string) => nome.includes(p));
+      const nomeNorm = normalizarTexto(item.nome);
+      return palavrasTermo.some((p: string) => nomeNorm.includes(p));
     });
 
     const resultadoFinal = fallbackBusca.length > 0 ? fallbackBusca : resultadosLocais;

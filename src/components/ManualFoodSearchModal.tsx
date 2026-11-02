@@ -68,7 +68,7 @@ export const ManualFoodSearchModal: React.FC<Props> = ({
       }
     };
 
-    const debounce = setTimeout(buscar, 220);
+    const debounce = setTimeout(buscar, 120);
     return () => {
       cancelado = true;
       clearTimeout(debounce);
@@ -159,7 +159,7 @@ export const ManualFoodSearchModal: React.FC<Props> = ({
             type="text"
             value={termo}
             onChange={(e) => setTermo(e.target.value)}
-            placeholder="Digite qualquer alimento: brigadeiro, manga, rúcula, pudim, whey..."
+            placeholder="Digite qualquer alimento: pão francês, arroz, frango, tapioca, açaí..."
             className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-medium shadow-inner"
             autoFocus
           />
