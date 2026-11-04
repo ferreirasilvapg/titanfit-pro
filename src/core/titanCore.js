@@ -684,7 +684,11 @@ export async function escanearRefeicaoComIA(arquivoImagem, setCarregando = () =>
 import {
   BANCO_TACO_COMPLETO,
   normalizarTexto,
+  UNIDADES_MEDIDA,
+  interpretarTextoAlimentoEQuantidade,
 } from './tacoDatabase.ts';
+
+export { UNIDADES_MEDIDA, interpretarTextoAlimentoEQuantidade };
 
 /**
  * BANCO DE DADOS OFICIAL TABELA TACO (UNICAMP) & USDA
@@ -694,14 +698,21 @@ export const BANCO_ALIMENTOS_TACO = BANCO_TACO_COMPLETO;
 
 /**
  * Busca alimentos pelo nome na base TACO, USDA, Open Food Facts e Reconhecimento Inteligente
- * Suporta reconhecimento de qualquer alimento do Brasil ou do mundo sem falhas de acentuação (ex: pao frances, pao de queijo, brigadeiro).
+ * Suporta reconhecimento de qualquer alimento e bebida do Brasil (ex: pao frances, cafe com leite, suco de laranja, agua de coco).
  *
  * @param {string} termoBusca - Palavra-chave digitada pelo usuário
- * @param {string} categoriaFiltro - Filtro opcional ('todos', 'doce', 'fruta', 'verdura', 'proteina', 'carboidrato', 'refeicao')
+ * @param {string} categoriaFiltro - Filtro opcional ('todos', 'doce', 'fruta', 'verdura', 'proteina', 'carboidrato', 'refeicao', 'bebida')
  */
 export async function buscarAlimentoManual(termoBusca = '', categoriaFiltro = 'todos') {
-  const normalizado = normalizarTexto(termoBusca);
+  let normalizado = normalizarTexto(termoBusca);
   const cat = categoriaFiltro ? normalizarTexto(categoriaFiltro) : 'todos';
+
+  // Se o usuário digitou uma frase com quantidade (ex: "1 copo de leite" ou "200ml suco de laranja"),
+  // extraímos o nome limpo do alimento para busca imediata
+  const interpretado = interpretarTextoAlimentoEQuantidade(termoBusca);
+  if (interpretado && interpretado.termoBusca) {
+    normalizado = normalizarTexto(interpretado.termoBusca);
+  }
 
   // Se a busca estiver vazia, retorna os itens representativos mais populares
   if (!normalizado && (cat === 'todos' || !cat)) {
@@ -716,7 +727,11 @@ export async function buscarAlimentoManual(termoBusca = '', categoriaFiltro = 't
     const catNorm = normalizarTexto(alimento.categoria);
 
     // Verifica se a categoria bate (ou se está em 'todos')
-    const bateCat = cat === 'todos' || catNorm === cat || (cat === 'carboidrato' && catNorm === 'refeicao');
+    const bateCat =
+      cat === 'todos' ||
+      catNorm === cat ||
+      (cat === 'carboidrato' && catNorm === 'refeicao') ||
+      (cat === 'bebida' && alimento.ehLiquido);
 
     if (!bateCat) return false;
     if (!normalizado) return true;
@@ -724,13 +739,20 @@ export async function buscarAlimentoManual(termoBusca = '', categoriaFiltro = 't
     // Correspondência exata da frase ou de todas as palavras digitadas
     if (nomeNorm.includes(normalizado)) return true;
 
-    // Tolerância por palavras (ex: 'pao frances' encontra 'Pão Francês Tradicional')
+    // Tolerância por palavras (ex: 'leite' encontra 'Leite Integral' e 'Café com Leite')
     const todasPalavrasBatem = palavrasTermo.every((p) => nomeNorm.includes(p));
     return todasPalavrasBatem;
   });
 
   // Se encontrou no banco oficial TACO local, retorna imediatamente com prioridade máxima
   if (locais.length > 0) {
+    // Se houve interpretação de quantidade natural, adiciona a sugestão ao item
+    if (interpretado) {
+      return locais.map((item) => ({
+        ...item,
+        _sugestaoInterpretada: interpretado
+      }));
+    }
     return locais;
   }
 

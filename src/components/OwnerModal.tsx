@@ -22,9 +22,20 @@ import {
   HelpCircle,
   Save,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Users,
+  Share2,
+  Trash2,
+  UserCheck
 } from 'lucide-react';
-import { salvarSessaoUsuario, EMAIL_DONO_MESTRE } from '../core/titanCommercial.js';
+import {
+  salvarSessaoUsuario,
+  EMAIL_DONO_MESTRE,
+  obterEmailsFamiliaAutorizados,
+  autorizarEmailFamilia,
+  removerEmailFamilia,
+  gerarLinkConviteFamilia
+} from '../core/titanCommercial.js';
 
 interface Props {
   aberto: boolean;
@@ -39,9 +50,10 @@ export const OwnerModal: React.FC<Props> = ({
   usuarioAtual,
   onAtualizarSessao
 }) => {
-  const [aba, setAba] = useState<'credenciais' | 'kiwify' | 'recursos'>('kiwify');
+  const [aba, setAba] = useState<'kiwify' | 'familia' | 'credenciais' | 'recursos'>('familia');
   const [copiado, setCopiado] = useState(false);
   const [copiadoLink, setCopiadoLink] = useState(false);
+  const [copiadoLinkFamilia, setCopiadoLinkFamilia] = useState(false);
   const [copiadoWebhook, setCopiadoWebhook] = useState(false);
 
   // Estados de Configuração Bancária & Kiwify
@@ -51,8 +63,20 @@ export const OwnerModal: React.FC<Props> = ({
   const [salvando, setSalvando] = useState(false);
   const [avisoSalvo, setAvisoSalvo] = useState(false);
 
+  // Estados de Gestão de Família & VIPs
+  const [emailsFamilia, setEmailsFamilia] = useState<any[]>([]);
+  const [novoEmailFamilia, setNovoEmailFamilia] = useState('');
+  const [novoNomeFamilia, setNovoNomeFamilia] = useState('');
+
   const urlAtual = typeof window !== 'undefined' ? window.location.origin : 'https://titanfit.app';
   const urlWebhook = `${urlAtual}/api/webhook/kiwify`;
+  const urlConviteFamilia = `${urlAtual}?vip=familia`;
+
+  useEffect(() => {
+    if (aberto) {
+      setEmailsFamilia(obterEmailsFamiliaAutorizados());
+    }
+  }, [aberto]);
 
   useEffect(() => {
     // Carrega configurações bancárias ativas do servidor
@@ -126,9 +150,29 @@ export const OwnerModal: React.FC<Props> = ({
     onAtualizarSessao(usuarioDono);
   };
 
+  const handleCopiarLinkFamilia = () => {
+    navigator.clipboard?.writeText(urlConviteFamilia);
+    setCopiadoLinkFamilia(true);
+    setTimeout(() => setCopiadoLinkFamilia(false), 2000);
+  };
+
+  const handleAdicionarEmailFamilia = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!novoEmailFamilia.trim()) return;
+    autorizarEmailFamilia(novoEmailFamilia.trim(), novoNomeFamilia.trim() || 'Membro da Família');
+    setEmailsFamilia(obterEmailsFamiliaAutorizados());
+    setNovoEmailFamilia('');
+    setNovoNomeFamilia('');
+  };
+
+  const handleRemoverEmailFamilia = (email: string) => {
+    removerEmailFamilia(email);
+    setEmailsFamilia(obterEmailsFamiliaAutorizados());
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-md animate-fade-in overflow-y-auto">
-      <div className="bg-[#111827] border border-amber-500/40 w-full max-w-xl rounded-3xl p-6 shadow-2xl relative my-auto max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-3 sm:p-4 backdrop-blur-md animate-fade-in overflow-y-auto">
+      <div className="bg-[#111827] border border-amber-500/40 w-full max-w-xl rounded-3xl p-5 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] flex flex-col">
         {/* Botão Fechar */}
         <button
           onClick={onFechar}
@@ -144,22 +188,32 @@ export const OwnerModal: React.FC<Props> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-base font-extrabold text-white">Painel do Dono & Recebimentos</h3>
+              <h3 className="text-base font-extrabold text-white">Painel do Dono & Família</h3>
               <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
                 MASTER ADMIN
               </span>
             </div>
-            <p className="text-xs text-slate-400">Controle financeiro, Kiwify, Pix bancário e permissões</p>
+            <p className="text-xs text-slate-400">Autorização familiar, vendas Kiwify, Pix e permissões</p>
           </div>
         </div>
 
-        {/* Abas do Painel */}
-        <div className="grid grid-cols-3 gap-1.5 bg-slate-900 p-1 rounded-2xl border border-slate-800 mb-4">
+        {/* Abas do Painel em 4 Colunas */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-slate-900 p-1 rounded-2xl border border-slate-800 mb-4">
+          <button
+            type="button"
+            onClick={() => setAba('familia')}
+            className={`py-2 px-1 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
+              aba === 'familia' ? 'bg-amber-500 text-slate-950 shadow font-black' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>Família & VIPs</span>
+          </button>
           <button
             type="button"
             onClick={() => setAba('kiwify')}
-            className={`py-2 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
-              aba === 'kiwify' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+            className={`py-2 px-1 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
+              aba === 'kiwify' ? 'bg-amber-500 text-slate-950 shadow font-black' : 'text-slate-400 hover:text-white'
             }`}
           >
             <DollarSign className="w-3.5 h-3.5" />
@@ -168,8 +222,8 @@ export const OwnerModal: React.FC<Props> = ({
           <button
             type="button"
             onClick={() => setAba('credenciais')}
-            className={`py-2 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
-              aba === 'credenciais' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+            className={`py-2 px-1 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
+              aba === 'credenciais' ? 'bg-amber-500 text-slate-950 shadow font-black' : 'text-slate-400 hover:text-white'
             }`}
           >
             <Key className="w-3.5 h-3.5" />
@@ -178,8 +232,8 @@ export const OwnerModal: React.FC<Props> = ({
           <button
             type="button"
             onClick={() => setAba('recursos')}
-            className={`py-2 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
-              aba === 'recursos' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+            className={`py-2 px-1 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
+              aba === 'recursos' ? 'bg-amber-500 text-slate-950 shadow font-black' : 'text-slate-400 hover:text-white'
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
@@ -188,6 +242,163 @@ export const OwnerModal: React.FC<Props> = ({
         </div>
 
         <div className="overflow-y-auto pr-1 space-y-4 flex-1">
+          {/* ================================================================= */}
+          {/* ABA 0: COMPARTILHAR COM A FAMÍLIA & AUTORIZAÇÃO VIP               */}
+          {/* ================================================================= */}
+          {aba === 'familia' && (
+            <div className="space-y-4">
+              {/* Card Explicativo com Informações Claras */}
+              <div className="bg-gradient-to-br from-amber-950/40 via-slate-900 to-slate-900 border border-amber-500/30 rounded-2xl p-4">
+                <div className="flex items-center gap-2.5 mb-2">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center flex-shrink-0">
+                    <Users className="w-4 h-4 text-amber-400" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black uppercase text-amber-300 tracking-wider">
+                      Como Funciona o Acesso da sua Família
+                    </h4>
+                    <p className="text-[11px] text-slate-300">
+                      Sim! Você pode compartilhar o link e liberar acesso gratuito para todos os membros da sua família.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-[11px] text-slate-300 space-y-1.5 mt-2">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                    <span><strong>Dados 100% Isolados:</strong> O diário alimentar, o peso registrado, a hidratação e os treinos de cada familiar ficam salvos no celular de cada um. Ninguém vê ou mistura dados dos outros.</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                    <span><strong>Recursos VIP Liberados:</strong> Câmera com IA para escanear pratos, treinos particulares com GIFs, avaliação anti-lesão e macros em gramas/ml.</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Opção 1: Link VIP com 1 Toque (WhatsApp) */}
+              <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-2.5">
+                <div className="flex items-center gap-2">
+                  <Share2 className="w-4 h-4 text-emerald-400" />
+                  <h4 className="text-xs font-black text-white uppercase tracking-wider">
+                    Opção 1: Link de Convite VIP Automático (Mais Fácil)
+                  </h4>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Ao clicar nesse link no WhatsApp, o celular do seu familiar já abre com o TitanFit liberado no modo <strong className="text-amber-400">PREMIUM VIP</strong> sem precisar pagar nada:
+                </p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={urlConviteFamilia}
+                    className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-amber-300 font-mono truncate"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCopiarLinkFamilia}
+                    className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs px-3.5 py-2 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-md flex-shrink-0"
+                  >
+                    {copiadoLinkFamilia ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        <span>Copiado!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copiar Link VIP</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Opção 2: Autorizar E-mails da Família */}
+              <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <UserCheck className="w-4 h-4 text-purple-400" />
+                  <h4 className="text-xs font-black text-white uppercase tracking-wider">
+                    Opção 2: Cadastrar E-mails da Família
+                  </h4>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Adicione o e-mail do seu familiar abaixo. Sempre que ele entrar com esse e-mail no aplicativo, o acesso Premium VIP estará liberado:
+                </p>
+
+                <form onSubmit={handleAdicionarEmailFamilia} className="space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      placeholder="Identificação (ex: Esposa, Filho, Irmão...)"
+                      value={novoNomeFamilia}
+                      onChange={(e) => setNovoNomeFamilia(e.target.value)}
+                      className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+                    />
+                    <input
+                      type="email"
+                      required
+                      placeholder="e-mail do familiar (ex: esposa@gmail.com)"
+                      value={novoEmailFamilia}
+                      onChange={(e) => setNovoEmailFamilia(e.target.value)}
+                      className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-2 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 shadow-md"
+                  >
+                    <UserCheck className="w-3.5 h-3.5" />
+                    <span>+ Autorizar Acesso VIP Grátis</span>
+                  </button>
+                </form>
+
+                {/* Lista de Familiares Autorizados */}
+                {emailsFamilia.length > 0 && (
+                  <div className="space-y-1.5 pt-2 border-t border-slate-800">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase">
+                      Membros Autorizados ({emailsFamilia.length}):
+                    </label>
+                    <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
+                      {emailsFamilia.map((item, idx) => {
+                        const email = typeof item === 'string' ? item : item.email;
+                        const nome = typeof item === 'string' ? 'Familiar VIP' : item.nome || 'Familiar VIP';
+                        return (
+                          <div
+                            key={idx}
+                            className="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800 text-xs"
+                          >
+                            <div className="min-w-0 pr-2">
+                              <span className="font-bold text-slate-200 block truncate">{nome}</span>
+                              <span className="text-[10px] text-amber-400/90 truncate block">{email}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoverEmailFamilia(email)}
+                              className="text-slate-500 hover:text-red-400 p-1 rounded-lg transition"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Opção 3: Cupom de Ativação VIP */}
+              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-3 flex items-center justify-between text-xs">
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Cupom Especial Familiar</span>
+                  <span className="text-amber-400 font-black tracking-widest text-sm">FAMILIAVIP</span>
+                </div>
+                <span className="text-[10px] text-slate-400 text-right max-w-[190px]">
+                  Basta digitar este código se abrir a tela de login para liberar na hora.
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* ================================================================= */}
           {/* ABA 1: CONFIGURAÇÃO BANCÁRIA, KIWIFY & PIX                        */}
           {/* ================================================================= */}

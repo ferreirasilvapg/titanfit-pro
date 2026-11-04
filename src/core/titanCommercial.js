@@ -116,6 +116,43 @@ function dispararAtualizacaoComercial() {
   });
 }
 
+const CHAVE_STORAGE_FAMILIA_AUTORIZADOS = 'titanfit_familia_vip_autorizados';
+
+export function obterEmailsFamiliaAutorizados() {
+  if (typeof window === 'undefined') return [];
+  const salvo = localStorage.getItem(CHAVE_STORAGE_FAMILIA_AUTORIZADOS);
+  if (!salvo) return [];
+  try {
+    const parsed = JSON.parse(salvo);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function autorizarEmailFamilia(email, nome = 'Membro da Família') {
+  if (!email) return;
+  const lista = obterEmailsFamiliaAutorizados();
+  const emailNorm = email.toLowerCase().trim();
+  const existe = lista.some((item) => (typeof item === 'string' ? item : item.email).toLowerCase() === emailNorm);
+  if (!existe) {
+    lista.push({ email: emailNorm, nome: nome || 'Membro da Família', adicionadoEm: new Date().toISOString() });
+    localStorage.setItem(CHAVE_STORAGE_FAMILIA_AUTORIZADOS, JSON.stringify(lista));
+  }
+}
+
+export function removerEmailFamilia(email) {
+  let lista = obterEmailsFamiliaAutorizados();
+  const emailNorm = email.toLowerCase().trim();
+  lista = lista.filter((item) => (typeof item === 'string' ? item : item.email).toLowerCase() !== emailNorm);
+  localStorage.setItem(CHAVE_STORAGE_FAMILIA_AUTORIZADOS, JSON.stringify(lista));
+}
+
+export function gerarLinkConviteFamilia() {
+  if (typeof window === 'undefined') return 'https://titanfit.app?vip=familia';
+  return `${window.location.origin}?vip=familia`;
+}
+
 /**
  * Retorna o usuário autenticado atualmente ou perfil padrão do dono/visitante
  */
@@ -131,6 +168,26 @@ export function obterUsuarioAtual() {
       dono: true,
       assinaturaAtiva: true
     };
+  }
+
+  // Se a URL contiver convite VIP da família (?vip=familia ou ?convite=familia), libera imediatamente o acesso Premium VIP!
+  if (window.location.search) {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('vip') === 'familia' || params.get('convite') === 'familia' || params.get('vip') === 'true') {
+      const usuarioFamilia = {
+        autenticado: true,
+        id: `familia_${Date.now()}`,
+        email: 'familia@titanfit.app',
+        nome: 'Família VIP (TitanFit)',
+        plano: 'premium',
+        papel: 'familia_vip',
+        assinaturaAtiva: true,
+        dataAssinatura: new Date().toISOString()
+      };
+      localStorage.setItem(CHAVE_STORAGE_USUARIO, JSON.stringify(usuarioFamilia));
+      localStorage.setItem(CHAVE_STORAGE_ASSINATURA, 'premium');
+      return usuarioFamilia;
+    }
   }
 
   const bruto = localStorage.getItem(CHAVE_STORAGE_USUARIO);
@@ -161,6 +218,17 @@ export function obterUsuarioAtual() {
       parsed.papel = 'dono';
       parsed.plano = 'premium';
       parsed.assinaturaAtiva = true;
+    } else {
+      // Verifica se o e-mail está na lista de familiares autorizados pelo dono
+      const emailsAutorizados = obterEmailsFamiliaAutorizados();
+      const estaAutorizado = emailsAutorizados.some(
+        (it) => (typeof it === 'string' ? it : it.email).toLowerCase() === (parsed.email || '').toLowerCase()
+      );
+      if (estaAutorizado) {
+        parsed.plano = 'premium';
+        parsed.assinaturaAtiva = true;
+        parsed.papel = 'familia_vip';
+      }
     }
     return parsed;
   } catch {
@@ -539,6 +607,7 @@ export async function sincronizarDadosNuvem() {
 
   // Coleta dados completos locais
   const historicoCargas = localStorage.getItem('titanfit_historico_cargas') || '{}';
+  const treinosParticulares = localStorage.getItem('titanfit_meus_treinos_particulares') || '[]';
   const chavesLocalStorage = Object.keys(localStorage).filter((k) => k.startsWith('titanfit_data_'));
   const dadosDiarios = {};
   chavesLocalStorage.forEach((k) => {
@@ -551,6 +620,7 @@ export async function sincronizarDadosNuvem() {
     plano: usuario.plano,
     dataSincronizacao: new Date().toISOString(),
     historicoCargas: JSON.parse(historicoCargas),
+    treinosParticulares: JSON.parse(treinosParticulares),
     dadosDiarios
   };
 
@@ -585,6 +655,9 @@ export async function carregarDadosNuvem(userId) {
       const dados = await res.json();
       if (dados.historicoCargas) {
         localStorage.setItem('titanfit_historico_cargas', JSON.stringify(dados.historicoCargas));
+      }
+      if (dados.treinosParticulares) {
+        localStorage.setItem('titanfit_meus_treinos_particulares', JSON.stringify(dados.treinosParticulares));
       }
       if (dados.dadosDiarios) {
         Object.entries(dados.dadosDiarios).forEach(([k, v]) => {

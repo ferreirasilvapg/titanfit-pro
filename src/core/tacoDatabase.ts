@@ -8,9 +8,23 @@
 export interface ItemNutricional {
   id: string;
   nome: string;
-  categoria: 'doce' | 'fruta' | 'verdura' | 'proteina' | 'carboidrato' | 'gordura' | 'refeicao';
+  categoria: 'doce' | 'fruta' | 'verdura' | 'proteina' | 'carboidrato' | 'gordura' | 'refeicao' | 'bebida';
   porcao: string;
   porcaoUnitaria?: string;
+  ehLiquido?: boolean;
+  unidadePadrao?:
+    | 'g'
+    | 'ml'
+    | 'copo_americano'
+    | 'copo_requeijao'
+    | 'copo_300'
+    | 'xicara_cha'
+    | 'xicara_cafe'
+    | 'colher_sopa'
+    | 'colher_cha'
+    | 'lata'
+    | 'garrafa_500'
+    | 'unidade';
   calorias: number;
   proteinas: number;
   carboidratos: number;
@@ -18,6 +32,98 @@ export interface ItemNutricional {
   fibras: number;
   dica: string;
   fonte?: string;
+}
+
+export interface UnidadeMedida {
+  id: string;
+  rotulo: string;
+  sigla: string;
+  fatorGramasOuMl: number; // Porção base equivalente em gramas ou ml
+  tipo: 'solido' | 'liquido' | 'ambos';
+  exemplo: string;
+}
+
+export const UNIDADES_MEDIDA: UnidadeMedida[] = [
+  { id: 'ml', rotulo: 'Mililitros (ml)', sigla: 'ml', fatorGramasOuMl: 1, tipo: 'liquido', exemplo: '100ml, 200ml' },
+  { id: 'g', rotulo: 'Gramas (g)', sigla: 'g', fatorGramasOuMl: 1, tipo: 'solido', exemplo: '100g, 150g' },
+  { id: 'copo_americano', rotulo: 'Copo Americano', sigla: 'copo (200ml)', fatorGramasOuMl: 200, tipo: 'liquido', exemplo: '1 copo = 200ml' },
+  { id: 'copo_requeijao', rotulo: 'Copo Requeijão / Médio', sigla: 'copo (250ml)', fatorGramasOuMl: 250, tipo: 'liquido', exemplo: '1 copo = 250ml' },
+  { id: 'copo_300', rotulo: 'Copo Grande', sigla: 'copo (300ml)', fatorGramasOuMl: 300, tipo: 'liquido', exemplo: '1 copo = 300ml' },
+  { id: 'xicara_cha', rotulo: 'Xícara de Chá', sigla: 'xícara (240ml)', fatorGramasOuMl: 240, tipo: 'ambos', exemplo: '1 xícara = 240ml' },
+  { id: 'xicara_cafe', rotulo: 'Xícara de Café (Cafézinha)', sigla: 'cafézinha (50ml)', fatorGramasOuMl: 50, tipo: 'liquido', exemplo: '1 xícara = 50ml' },
+  { id: 'colher_sopa', rotulo: 'Colher de Sopa', sigla: 'colher sopa (~15ml)', fatorGramasOuMl: 15, tipo: 'ambos', exemplo: '1 colher = 15ml / 15g' },
+  { id: 'colher_cha', rotulo: 'Colher de Chá', sigla: 'colher chá (~5ml)', fatorGramasOuMl: 5, tipo: 'ambos', exemplo: '1 colher = 5ml / 5g' },
+  { id: 'lata', rotulo: 'Lata Padrão', sigla: 'lata (350ml)', fatorGramasOuMl: 350, tipo: 'liquido', exemplo: '1 lata = 350ml' },
+  { id: 'garrafa_500', rotulo: 'Garrafinha (500ml)', sigla: 'garrafa (500ml)', fatorGramasOuMl: 500, tipo: 'liquido', exemplo: '1 garrafa = 500ml' },
+  { id: 'unidade', rotulo: 'Porção Unitária', sigla: 'unid', fatorGramasOuMl: 100, tipo: 'ambos', exemplo: '1 unidade média' },
+];
+
+/**
+ * Interpretador inteligente em linguagem natural para líquidos e sólidos
+ * Ex: "1 copo de leite integral" -> { termoBusca: 'leite integral', quantidade: 1, unidadeId: 'copo_americano', mlOuGramas: 200 }
+ * Ex: "200ml de suco de laranja" -> { termoBusca: 'suco de laranja', quantidade: 200, unidadeId: 'ml', mlOuGramas: 200 }
+ * Ex: "2 xicaras de cafe" -> { termoBusca: 'cafe', quantidade: 2, unidadeId: 'xicara_cha', mlOuGramas: 480 }
+ * Ex: "1 colher de sopa de azeite" -> { termoBusca: 'azeite', quantidade: 1, unidadeId: 'colher_sopa', mlOuGramas: 15 }
+ * Ex: "1 lata de coca zero" -> { termoBusca: 'coca zero', quantidade: 1, unidadeId: 'lata', mlOuGramas: 350 }
+ */
+export function interpretarTextoAlimentoEQuantidade(textoBruto: string = '') {
+  const norm = normalizarTexto(textoBruto);
+  if (!norm) return null;
+
+  // Regex para capturar padrão "quantidade + unidade + de + alimento"
+  // Ex: "1 copo de leite", "200ml suco", "2 xicaras cafe", "1 lata refri"
+  const regexPadrao = /^(\d+(?:[.,]\d+)?)\s*(ml|l|litros?|gramas?|g|copos?(?:\s+americano)?|xicaras?(?:\s+de\s+cha)?|cafezinhas?|colheres?(?:\s+de\s+sopa)?|colheres?(?:\s+de\s+cha)?|latas?|garrafas?)\s*(?:de\s+)?(.+)$/i;
+  const match = norm.match(regexPadrao);
+
+  if (match) {
+    const qtdNum = parseFloat(match[1].replace(',', '.'));
+    const unidadeTexto = match[2].toLowerCase().trim();
+    const restoAlimento = match[3].trim();
+
+    let unidadeId = 'g';
+    let fator = 1;
+
+    if (unidadeTexto === 'ml') {
+      unidadeId = 'ml';
+      fator = 1;
+    } else if (unidadeTexto === 'l' || unidadeTexto.startsWith('litro')) {
+      unidadeId = 'ml';
+      fator = 1000;
+    } else if (unidadeTexto.startsWith('copo')) {
+      unidadeId = 'copo_americano';
+      fator = 200;
+    } else if (unidadeTexto.startsWith('xicara')) {
+      unidadeId = 'xicara_cha';
+      fator = 240;
+    } else if (unidadeTexto.startsWith('cafezinha')) {
+      unidadeId = 'xicara_cafe';
+      fator = 50;
+    } else if (unidadeTexto.includes('sopa')) {
+      unidadeId = 'colher_sopa';
+      fator = 15;
+    } else if (unidadeTexto.includes('cha')) {
+      unidadeId = 'colher_cha';
+      fator = 5;
+    } else if (unidadeTexto.startsWith('lata')) {
+      unidadeId = 'lata';
+      fator = 350;
+    } else if (unidadeTexto.startsWith('garrafa')) {
+      unidadeId = 'garrafa_500';
+      fator = 500;
+    } else if (unidadeTexto === 'g' || unidadeTexto.startsWith('grama')) {
+      unidadeId = 'g';
+      fator = 1;
+    }
+
+    return {
+      termoBusca: restoAlimento,
+      quantidade: qtdNum,
+      unidadeId,
+      mlOuGramasTotal: Math.round(qtdNum * fator)
+    };
+  }
+
+  return null;
 }
 
 export function normalizarTexto(str: string = ''): string {
@@ -1105,5 +1211,307 @@ export const BANCO_TACO_COMPLETO: ItemNutricional[] = [
     gorduras: 66.4,
     fibras: 7.5,
     dica: 'Maior concentração de selênio natural do mundo, otimizando a tireoide.'
+  },
+
+  // ===================== BEBIDAS, LÍQUIDOS E SHAKES (TABELA TACO & USDA) =====================
+  {
+    id: 'bebida-leite-integral',
+    nome: 'Leite Integral Pasteurizado / UHT',
+    categoria: 'bebida',
+    porcao: '100ml',
+    porcaoUnitaria: '1 copo americano (~200ml)',
+    ehLiquido: true,
+    unidadePadrao: 'copo_americano',
+    calorias: 61,
+    proteinas: 3.2,
+    carboidratos: 4.8,
+    gorduras: 3.2,
+    fibras: 0.0,
+    dica: 'Fonte de cálcio de alta biodisponibilidade, fósforo e proteínas completas (caseína e whey).'
+  },
+  {
+    id: 'bebida-leite-desnatado',
+    nome: 'Leite Desnatado (Zero Gordura)',
+    categoria: 'bebida',
+    porcao: '100ml',
+    porcaoUnitaria: '1 copo americano (~200ml)',
+    ehLiquido: true,
+    unidadePadrao: 'copo_americano',
+    calorias: 35,
+    proteinas: 3.4,
+    carboidratos: 5.0,
+    gorduras: 0.2,
+    fibras: 0.0,
+    dica: 'Mesma quantidade de proteína e cálcio do leite integral, com praticamente zero gorduras.'
+  },
+  {
+    id: 'bebida-leite-semidesnatado',
+    nome: 'Leite Semidesnatado',
+    categoria: 'bebida',
+    porcao: '100ml',
+    porcaoUnitaria: '1 copo americano (~200ml)',
+    ehLiquido: true,
+    unidadePadrao: 'copo_americano',
+    calorias: 45,
+    proteinas: 3.3,
+    carboidratos: 4.9,
+    gorduras: 1.5,
+    fibras: 0.0,
+    dica: 'Equilíbrio ideal entre sabor cremoso e menor teor calórico para o dia a dia.'
+  },
+  {
+    id: 'bebida-cafe-sem-acucar',
+    nome: 'Café Preto Coado (Sem Açúcar)',
+    categoria: 'bebida',
+    porcao: '100ml',
+    porcaoUnitaria: '1 xícara de café (~50ml) ou xícara de chá (~150ml)',
+    ehLiquido: true,
+    unidadePadrao: 'xicara_cafe',
+    calorias: 2,
+    proteinas: 0.2,
+    carboidratos: 0.3,
+    gorduras: 0.0,
+    fibras: 0.0,
+    dica: 'Zero calorias significativas. Excelente termogênico natural rico em polifenóis antioxidantes.'
+  },
+  {
+    id: 'bebida-cafe-com-acucar',
+    nome: 'Café Coado Adoçado com Açúcar',
+    categoria: 'bebida',
+    porcao: '100ml',
+    porcaoUnitaria: '1 xícara de café (~50ml)',
+    ehLiquido: true,
+    unidadePadrao: 'xicara_cafe',
+    calorias: 42,
+    proteinas: 0.2,
+    carboidratos: 10.3,
+    gorduras: 0.0,
+    fibras: 0.0,
+    dica: 'Contém carboidratos simples adicionados pelo açúcar refinado ou cristal.'
+  },
+  {
+    id: 'bebida-cafe-com-leite',
+    nome: 'Café com Leite Tradicional (Pingado)',
+    categoria: 'bebida',
+    porcao: '100ml',
+    porcaoUnitaria: '1 copo americano (~190ml) ou xícara (~200ml)',
+    ehLiquido: true,
+    unidadePadrao: 'copo_americano',
+    calorias: 52,
+    proteinas: 2.7,
+    carboidratos: 4.4,
+    gorduras: 2.6,
+    fibras: 0.0,
+    dica: 'Combinação clássica matinal do brasileiro com energia rápida e proteínas.'
+  },
+  {
+    id: 'bebida-suco-laranja-natural',
+    nome: 'Suco de Laranja Natural (Sem Açúcar)',
+    categoria: 'bebida',
+    porcao: '100ml',
+    porcaoUnitaria: '1 copo americano (~200ml) ou copo 300ml',
+    ehLiquido: true,
+    unidadePadrao: 'copo_americano',
+    calorias: 45,
+    proteinas: 0.7,
+    carboidratos: 10.4,
+    gorduras: 0.2,
+    fibras: 0.2,
+    dica: 'Rico em Vitamina C, flavonoides como hesperidina e potássio natural.'
+  },
+  {
+    id: 'bebida-suco-laranja-acucar',
+    nome: 'Suco de Laranja Adoçado com Açúcar',
+    categoria: 'bebida',
+    porcao: '100ml',
+    porcaoUnitaria: '1 copo grande (~250ml)',
+    ehLiquido: true,
+    unidadePadrao: 'copo_requeijao',
+    calorias: 65,
+    proteinas: 0.6,
+    carboidratos: 15.5,
+    gorduras: 0.1,
+    fibras: 0.2,
+    dica: 'Maior densidade glicêmica devido ao açúcar adicional.'
+  },
+  {
+    id: 'bebida-suco-uva-integral',
+    nome: 'Suco de Uva 100% Integral',
+    categoria: 'bebida',
+    porcao: '100ml',
+    porcaoUnitaria: '1 copo (~200ml)',
+    ehLiquido: true,
+    unidadePadrao: 'copo_americano',
+    calorias: 68,
+    proteinas: 0.6,
+    carboidratos: 16.4,
+    gorduras: 0.1,
+    fibras: 0.1,
+    dica: 'Altíssima concentração de resveratrol, antocianinas e ação vasodilatadora endotelial.'
+  },
+  {
+    id: 'bebida-agua-coco',
+    nome: 'Água de Coco Natural',
+    categoria: 'bebida',
+    porcao: '100ml',
+    porcaoUnitaria: '1 copo (~200ml) ou coco verde (~350ml)',
+    ehLiquido: true,
+    unidadePadrao: 'copo_americano',
+    calorias: 19,
+    proteinas: 0.7,
+    carboidratos: 3.7,
+    gorduras: 0.2,
+    fibras: 1.1,
+    dica: 'Isotônico natural perfeito para hidratação rápida, reposição de eletrólitos e potássio.'
+  },
+  {
+    id: 'bebida-whey-agua',
+    nome: 'Shake de Whey Protein com Água',
+    categoria: 'bebida',
+    porcao: '100ml',
+    porcaoUnitaria: '1 shake (1 scoop 30g + 200ml de água = ~230ml)',
+    ehLiquido: true,
+    unidadePadrao: 'copo_americano',
+    calorias: 52,
+    proteinas: 10.4,
+    carboidratos: 1.3,
+    gorduras: 0.7,
+    fibras: 0.0,
+    dica: 'Pico rápido de leucina e aminoácidos essenciais para síntese proteica pós-treino.'
+  },
+  {
+    id: 'bebida-whey-leite',
+    nome: 'Shake de Whey Protein com Leite Desnatado',
+    categoria: 'bebida',
+    porcao: '100ml',
+    porcaoUnitaria: '1 shake (~250ml)',
+    ehLiquido: true,
+    unidadePadrao: 'copo_requeijao',
+    calorias: 75,
+    proteinas: 12.5,
+    carboidratos: 5.0,
+    gorduras: 0.8,
+    fibras: 0.0,
+    dica: 'Combinação potente de absorção mista (whey rápido + caseína sustentada).'
+  },
+  {
+    id: 'bebida-vitamina-banana',
+    nome: 'Vitamina de Banana com Leite e Aveia',
+    categoria: 'bebida',
+    porcao: '100ml',
+    porcaoUnitaria: '1 copo grande (~300ml)',
+    ehLiquido: true,
+    unidadePadrao: 'copo_300',
+    calorias: 88,
+    proteinas: 3.8,
+    carboidratos: 15.2,
+    gorduras: 1.8,
+    fibras: 1.3,
+    dica: 'Refeição líquida anabólica completa com potássio, beta-glucana e proteínas.'
+  },
+  {
+    id: 'bebida-refrigerante-cola',
+    nome: 'Refrigerante Tradicional (Cola / Guaraná)',
+    categoria: 'bebida',
+    porcao: '100ml',
+    porcaoUnitaria: '1 lata (~350ml) ou 1 copo (~200ml)',
+    ehLiquido: true,
+    unidadePadrao: 'lata',
+    calorias: 42,
+    proteinas: 0.0,
+    carboidratos: 10.6,
+    gorduras: 0.0,
+    fibras: 0.0,
+    dica: 'Calorias vazias provenientes exclusivamente de açúcares simples.'
+  },
+  {
+    id: 'bebida-refrigerante-zero',
+    nome: 'Refrigerante Zero Açúcar (Cola Zero / Guaraná Zero)',
+    categoria: 'bebida',
+    porcao: '100ml',
+    porcaoUnitaria: '1 lata (~350ml)',
+    ehLiquido: true,
+    unidadePadrao: 'lata',
+    calorias: 0,
+    proteinas: 0.0,
+    carboidratos: 0.0,
+    gorduras: 0.0,
+    fibras: 0.0,
+    dica: 'Adoçado com sucralose/acessulfame-k, sem impacto em carboidratos ou calorias.'
+  },
+  {
+    id: 'bebida-cerveja-pilsen',
+    nome: 'Cerveja Pilsen Tradicional',
+    categoria: 'bebida',
+    porcao: '100ml',
+    porcaoUnitaria: '1 lata (~350ml) ou long neck (~330ml)',
+    ehLiquido: true,
+    unidadePadrao: 'lata',
+    calorias: 43,
+    proteinas: 0.5,
+    carboidratos: 3.6,
+    gorduras: 0.0,
+    fibras: 0.0,
+    dica: 'Bebida fermentada à base de malte e lúpulo, calorias oriundas de carboidratos e álcool.'
+  },
+  {
+    id: 'bebida-cha-verde',
+    nome: 'Chá Verde / Preto / Mate sem Açúcar',
+    categoria: 'bebida',
+    porcao: '100ml',
+    porcaoUnitaria: '1 xícara (~200ml) ou copo grande',
+    ehLiquido: true,
+    unidadePadrao: 'xicara_cha',
+    calorias: 1,
+    proteinas: 0.1,
+    carboidratos: 0.2,
+    gorduras: 0.0,
+    fibras: 0.0,
+    dica: 'Calorias desprezíveis, rico em catequinas (EGCG) e compostos anti-inflamatórios.'
+  },
+  {
+    id: 'bebida-leite-vegetal-aveia',
+    nome: 'Leite Vegetal de Aveia / Amêndoas',
+    categoria: 'bebida',
+    porcao: '100ml',
+    porcaoUnitaria: '1 copo (~200ml)',
+    ehLiquido: true,
+    unidadePadrao: 'copo_americano',
+    calorias: 46,
+    proteinas: 1.2,
+    carboidratos: 7.2,
+    gorduras: 1.5,
+    fibras: 0.9,
+    dica: 'Alternativa 100% vegetal sem lactose e livre de colesterol.'
+  },
+  {
+    id: 'bebida-iogurte-natural',
+    nome: 'Iogurte Natural Integral Consistente',
+    categoria: 'bebida',
+    porcao: '100g',
+    porcaoUnitaria: '1 pote individual (~170g) ou 1 copo (~200ml)',
+    ehLiquido: true,
+    unidadePadrao: 'unidade',
+    calorias: 61,
+    proteinas: 3.5,
+    carboidratos: 4.7,
+    gorduras: 3.2,
+    fibras: 0.0,
+    dica: 'Probióticos vivos excelentes para o microbioma intestinal e síntese de vitaminas.'
+  },
+  {
+    id: 'bebida-iogurte-desnatado',
+    nome: 'Iogurte Natural Desnatado / Zero Gordura',
+    categoria: 'bebida',
+    porcao: '100g',
+    porcaoUnitaria: '1 pote individual (~160g)',
+    ehLiquido: true,
+    unidadePadrao: 'unidade',
+    calorias: 41,
+    proteinas: 4.2,
+    carboidratos: 5.8,
+    gorduras: 0.1,
+    fibras: 0.0,
+    dica: 'Densidade proteica pura sem gordura adicionada, excelente com aveia e frutas.'
   }
 ];

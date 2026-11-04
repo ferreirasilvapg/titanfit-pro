@@ -34,6 +34,9 @@ export const UpgradePremiumModal: React.FC<Props> = ({
   const [dadosPagamento, setDadosPagamento] = useState<any | null>(null);
   const [carregando, setCarregando] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [cupom, setCupom] = useState('');
+  const [mostrarCupom, setMostrarCupom] = useState(false);
+  const [erroCupom, setErroCupom] = useState('');
 
   if (!aberto) return null;
 
@@ -156,6 +159,48 @@ export const UpgradePremiumModal: React.FC<Props> = ({
                 <CreditCard className="w-3.5 h-3.5" />
                 <span>Cartão</span>
               </button>
+            </div>
+
+            {/* Campo de Cupom Familiar VIP */}
+            <div className="pt-1">
+              {!mostrarCupom ? (
+                <button
+                  type="button"
+                  onClick={() => setMostrarCupom(true)}
+                  className="text-[11px] text-purple-400 hover:text-purple-300 underline cursor-pointer block mx-auto"
+                >
+                  Possui cupom da família ou convite VIP?
+                </button>
+              ) : (
+                <div className="space-y-1.5 p-2 rounded-xl bg-slate-900 border border-purple-500/30">
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      placeholder="Digite o cupom (ex: FAMILIAVIP)"
+                      value={cupom}
+                      onChange={(e) => {
+                        setCupom(e.target.value);
+                        setErroCupom('');
+                      }}
+                      className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-amber-300 font-mono uppercase focus:outline-none focus:border-purple-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (cupom.toUpperCase().trim() === 'FAMILIAVIP') {
+                          simularAprovacaoRapida();
+                        } else {
+                          setErroCupom('Cupom não encontrado.');
+                        }
+                      }}
+                      className="bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs px-3 py-1.5 rounded-lg cursor-pointer"
+                    >
+                      Ativar
+                    </button>
+                  </div>
+                  {erroCupom && <span className="text-[10px] text-red-400 block">{erroCupom}</span>}
+                </div>
+              )}
             </div>
 
             {/* Botão de Upgrade CTA */}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   cadastrarUsuarioNuvem,
   autenticarUsuarioNuvem,
+  salvarSessaoUsuario,
 } from '../core/titanCommercial.js';
 import {
   User,
@@ -13,6 +14,7 @@ import {
   CheckCircle2,
   Cloud,
   ShieldCheck,
+  Sparkles,
 } from 'lucide-react';
 
 interface Props {
@@ -42,6 +44,26 @@ export const AuthModal: React.FC<Props> = ({
     setErro(null);
 
     try {
+      // Ativação instantânea de Família VIP com cupom ou senha mestre
+      if (
+        senha.toUpperCase().trim() === 'FAMILIAVIP' ||
+        email.toUpperCase().trim() === 'FAMILIAVIP'
+      ) {
+        const usuarioFamilia = salvarSessaoUsuario({
+          id: `familia_${Date.now()}`,
+          email: email.includes('@') ? email.trim() : 'familia@titanfit.app',
+          nome: nome.trim() || 'Membro da Família VIP',
+          plano: 'premium',
+          papel: 'familia_vip',
+          autenticado: true,
+          assinaturaAtiva: true,
+          dataAssinatura: new Date().toISOString()
+        });
+        onAutenticado(usuarioFamilia);
+        onFechar();
+        return;
+      }
+
       if (modo === 'login') {
         const usuario = await autenticarUsuarioNuvem(email, senha);
         onAutenticado(usuario);

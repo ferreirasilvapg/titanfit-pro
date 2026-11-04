@@ -99,10 +99,11 @@ REGRAS RÍGIDAS DE CÁLCULO DE MACROS:
 Responda ESTRITAMENTE em formato JSON com o seguinte esquema (array de 1 a 3 variações mais relevantes):
 [
   {
-    "nome": "Nome do Alimento Completo em Português",
-    "categoria": "doce|fruta|verdura|proteina|carboidrato|gordura|refeicao",
-    "porcao": "100g",
-    "porcaoUnitaria": "1 unidade média (~90g) ou porção comum",
+    "nome": "Nome do Alimento ou Bebida Completo em Português",
+    "categoria": "doce|fruta|verdura|proteina|carboidrato|gordura|refeicao|bebida",
+    "ehLiquido": true,
+    "porcao": "100ml ou 100g",
+    "porcaoUnitaria": "1 copo americano (~200ml), 1 xícara (~240ml), 1 lata (~350ml) ou porção comum",
     "calorias": 150,
     "proteinas": 5.0,
     "carboidratos": 25.0,
@@ -130,13 +131,15 @@ Responda ESTRITAMENTE em formato JSON com o seguinte esquema (array de 1 a 3 var
             // Cálculo garantido de Atwater
             const calCalculada = Math.round((prot * 4) + (carb * 4) + (gord * 9) + (fib * 2));
             const caloriasFinais = it.calorias ? Math.round(Number(it.calorias)) : calCalculada;
+            const ehLiquido = Boolean(it.ehLiquido || it.categoria === 'bebida' || (it.porcao && it.porcao.includes('ml')));
 
             return {
               id: `ai-food-${Date.now()}-${idx}`,
               nome: it.nome,
               categoria: it.categoria || 'refeicao',
-              porcao: '100g',
-              porcaoUnitaria: it.porcaoUnitaria || '100g',
+              ehLiquido,
+              porcao: ehLiquido ? '100ml' : '100g',
+              porcaoUnitaria: it.porcaoUnitaria || (ehLiquido ? '1 copo (~200ml)' : '100g'),
               calorias: caloriasFinais,
               proteinas: prot,
               carboidratos: carb,

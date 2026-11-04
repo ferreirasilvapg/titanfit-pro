@@ -33,6 +33,7 @@ import { AuthModal } from './components/AuthModal';
 import { UpgradePremiumModal } from './components/UpgradePremiumModal';
 import { JointAssessmentModal } from './components/JointAssessmentModal';
 import { PersonalizedWorkoutView } from './components/PersonalizedWorkoutView';
+import { CustomWorkoutManager } from './components/CustomWorkoutManager';
 import { OwnerModal } from './components/OwnerModal';
 import {
   obterAnamneseArticular,
@@ -66,7 +67,7 @@ export default function App() {
   // Controle de Visualização: 'app' (Dashboard Operacional) ou 'landing' (Página de Vendas Cyberpunk)
   const [visualizacao, setVisualizacao] = useState<'app' | 'landing'>('app');
   const [abaAtiva, setAbaAtiva] = useState<'treinos' | 'nutricao' | 'hidratacao' | 'resumo'>('treinos');
-  const [subAbaTreinos, setSubAbaTreinos] = useState<'todos' | 'personalizado'>('personalizado');
+  const [subAbaTreinos, setSubAbaTreinos] = useState<'particulares' | 'personalizado' | 'todos'>('particulares');
 
   // Modais Funcionais
   const [modalCameraAberto, setModalCameraAberto] = useState(false);
@@ -385,13 +386,30 @@ export default function App() {
         {/* Visualização da Aba Selecionada */}
         {abaAtiva === 'treinos' && (
           <div className="space-y-4">
-            {/* Seletor de Sub-Abas de Treino */}
-            <div className="flex items-center gap-1.5 sm:gap-2 bg-[#111827] p-1 sm:p-1.5 rounded-2xl border border-slate-800">
+            {/* Seletor de Sub-Abas de Treino com Suporte a Mobile Scroll */}
+            <div className="flex items-center gap-1.5 sm:gap-2 bg-[#111827] p-1 sm:p-1.5 rounded-2xl border border-slate-800 overflow-x-auto no-scrollbar">
+              <button
+                onClick={() => setSubAbaTreinos('particulares')}
+                className={`flex-1 min-w-[130px] sm:min-w-0 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap flex-shrink-0 ${
+                  subAbaTreinos === 'particulares'
+                    ? 'bg-emerald-500 text-slate-950 font-black shadow-lg shadow-emerald-500/20'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <Dumbbell className={`w-3.5 h-3.5 flex-shrink-0 ${subAbaTreinos === 'particulares' ? 'text-slate-950' : 'text-emerald-400'}`} />
+                <span className="truncate">Meus Treinos Particulares</span>
+                <span className={`text-[9px] px-1 py-0.2 rounded font-black flex-shrink-0 ${
+                  subAbaTreinos === 'particulares' ? 'bg-slate-950/40 text-emerald-200' : 'bg-emerald-500/20 text-emerald-300'
+                }`}>
+                  MEU
+                </span>
+              </button>
+
               <button
                 onClick={() => setSubAbaTreinos('personalizado')}
-                className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                className={`flex-1 min-w-[130px] sm:min-w-0 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap flex-shrink-0 ${
                   subAbaTreinos === 'personalizado'
-                    ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 text-white shadow-md'
+                    ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 text-white shadow-md font-black'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
               >
@@ -404,18 +422,21 @@ export default function App() {
 
               <button
                 onClick={() => setSubAbaTreinos('todos')}
-                className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                className={`flex-1 min-w-[110px] sm:min-w-0 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap flex-shrink-0 ${
                   subAbaTreinos === 'todos'
-                    ? 'bg-emerald-500 text-slate-950 shadow-md font-bold'
+                    ? 'bg-slate-800 text-white border border-slate-700 shadow-md font-black'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
               >
-                <Dumbbell className="w-3.5 h-3.5 flex-shrink-0" />
+                <Flame className="w-3.5 h-3.5 flex-shrink-0 text-amber-400" />
                 <span className="truncate">2.000+ Exercícios</span>
               </button>
             </div>
 
-            {subAbaTreinos === 'personalizado' ? (
+            {/* Conteúdo da Sub-Aba Ativa */}
+            {subAbaTreinos === 'particulares' ? (
+              <CustomWorkoutManager />
+            ) : subAbaTreinos === 'personalizado' ? (
               <PersonalizedWorkoutView
                 plano={planoPersonalizado}
                 onAbrirQuestionario={handleAbrirQuestionarioArticular}
