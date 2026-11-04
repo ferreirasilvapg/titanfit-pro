@@ -251,16 +251,8 @@ export const BiomechanicalExerciseCard: React.FC<Props> = ({
             {/* Badges Flutuantes Não-Bloqueantes */}
             <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-black/75 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] text-emerald-400 font-bold border border-emerald-500/30 shadow-md pointer-events-none">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>Loop 60fps Ativo</span>
+              <span>Loop Ativo</span>
             </div>
-
-            {/* Indicador suave não-bloqueante no canto inferior direito */}
-            {carregando && !erroFatal && (
-              <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1.5 bg-black/80 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] text-emerald-400 font-bold border border-emerald-500/30 shadow-md pointer-events-none">
-                <div className="w-2 h-2 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
-                <span>Carregando GIF...</span>
-              </div>
-            )}
 
             <button
               onClick={() => setModalZoomAberto(true)}
