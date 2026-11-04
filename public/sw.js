@@ -26,13 +26,17 @@ const STATIC_ASSETS = [
   '/exercises/leg-press.gif'
 ];
 
-// Instalação do Service Worker e precache dos ativos estáticos
+// Instalação do Service Worker e precache resiliente dos ativos estáticos
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS).catch((err) => {
-        console.warn('[SW] Precache parcial concluído:', err);
-      });
+    caches.open(CACHE_NAME).then(async (cache) => {
+      for (const asset of STATIC_ASSETS) {
+        try {
+          await cache.add(asset);
+        } catch (err) {
+          console.warn('[SW] Ativo ignorado no precache (será buscado via rede):', asset);
+        }
+      }
     })
   );
   self.skipWaiting();

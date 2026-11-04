@@ -26,7 +26,8 @@ import {
   Users,
   Share2,
   Trash2,
-  UserCheck
+  UserCheck,
+  MessageCircle,
 } from 'lucide-react';
 import {
   salvarSessaoUsuario,
@@ -286,30 +287,43 @@ export const OwnerModal: React.FC<Props> = ({
                 <p className="text-[11px] text-slate-400">
                   Ao clicar nesse link no WhatsApp, o celular do seu familiar já abre com o TitanFit liberado no modo <strong className="text-amber-400">PREMIUM VIP</strong> sem precisar pagar nada:
                 </p>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <input
                     type="text"
                     readOnly
                     value={urlConviteFamilia}
                     className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-amber-300 font-mono truncate"
                   />
-                  <button
-                    type="button"
-                    onClick={handleCopiarLinkFamilia}
-                    className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs px-3.5 py-2 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-md flex-shrink-0"
-                  >
-                    {copiadoLinkFamilia ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
-                        <span>Copiado!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5" />
-                        <span>Copiar Link VIP</span>
-                      </>
-                    )}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCopiarLinkFamilia}
+                      className="flex-1 sm:flex-initial bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs px-3.5 py-2 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 shadow-md flex-shrink-0"
+                    >
+                      {copiadoLinkFamilia ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          <span>Copiado!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Copiar Link VIP</span>
+                        </>
+                      )}
+                    </button>
+                    <a
+                      href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
+                        `Oi! Te liberei acesso VIP vitalício gratuito no TitanFit Pro (Treinos com GIFs 60fps, Biomecânica, Dieta e Câmera com IA). Só abrir este link no seu celular para entrar direto como VIP:\n${urlConviteFamilia}`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 sm:flex-initial bg-green-600 hover:bg-green-500 text-white font-bold text-xs px-3 py-2 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 shadow-md flex-shrink-0"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      <span>WhatsApp</span>
+                    </a>
+                  </div>
                 </div>
               </div>
 

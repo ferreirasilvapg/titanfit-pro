@@ -32,24 +32,45 @@ interface Props {
   aberto: boolean;
   onFechar: () => void;
   onAdicionado?: () => void;
+  categoriaInicial?: string;
 }
 
 export const ManualFoodSearchModal: React.FC<Props> = ({
   aberto,
   onFechar,
   onAdicionado,
+  categoriaInicial = 'todos',
 }) => {
   const [termo, setTermo] = useState('');
-  const [categoriaAtiva, setCategoriaAtiva] = useState<string>('todos');
+  const [categoriaAtiva, setCategoriaAtiva] = useState<string>(categoriaInicial || 'todos');
   const [resultados, setResultados] = useState<any[]>([]);
   const [carregando, setCarregando] = useState(false);
 
   // Estados de Unidade e Quantidade Volumétrica / Sólida
-  const [unidadeSelecionadaId, setUnidadeSelecionadaId] = useState<string>('g');
-  const [valorQuantidade, setValorQuantidade] = useState<number>(100);
+  const [unidadeSelecionadaId, setUnidadeSelecionadaId] = useState<string>(
+    categoriaInicial === 'bebida' ? 'copo_americano' : 'g'
+  );
+  const [valorQuantidade, setValorQuantidade] = useState<number>(
+    categoriaInicial === 'bebida' ? 1 : 100
+  );
   const [refeicaoTipo, setRefeicaoTipo] = useState('Almoço');
   const [sucessoItem, setSucessoItem] = useState<string | null>(null);
   const [interpretacaoDetectada, setInterpretacaoDetectada] = useState<any | null>(null);
+
+  useEffect(() => {
+    if (aberto) {
+      if (categoriaInicial) {
+        setCategoriaAtiva(categoriaInicial);
+        if (categoriaInicial === 'bebida') {
+          setUnidadeSelecionadaId('copo_americano');
+          setValorQuantidade(1);
+        } else {
+          setUnidadeSelecionadaId('g');
+          setValorQuantidade(100);
+        }
+      }
+    }
+  }, [aberto, categoriaInicial]);
 
   const categorias = [
     { id: 'todos', rotulo: 'Todos', icone: UtensilsCrossed },

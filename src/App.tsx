@@ -72,8 +72,14 @@ export default function App() {
   // Modais Funcionais
   const [modalCameraAberto, setModalCameraAberto] = useState(false);
   const [modalBuscaManualAberto, setModalBuscaManualAberto] = useState(false);
+  const [categoriaBuscaManual, setCategoriaBuscaManual] = useState<string>('todos');
   const [modalHospedagemAberto, setModalHospedagemAberto] = useState(false);
   const [modalQuestionarioAberto, setModalQuestionarioAberto] = useState(false);
+
+  const handleAbrirBuscaManual = (cat: string = 'todos') => {
+    setCategoriaBuscaManual(cat);
+    setModalBuscaManualAberto(true);
+  };
 
   // Modais Comerciais, Nuvem & Painel do Dono
   const [modalCheckoutAberto, setModalCheckoutAberto] = useState(false);
@@ -477,7 +483,7 @@ export default function App() {
         {abaAtiva === 'nutricao' && (
           <MacroConsumptionChart
             onAbrirCameraIA={handleAbrirCameraIA}
-            onAbrirBuscaManual={() => setModalBuscaManualAberto(true)}
+            onAbrirBuscaManual={handleAbrirBuscaManual}
           />
         )}
 
@@ -488,7 +494,7 @@ export default function App() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <MacroConsumptionChart
                 onAbrirCameraIA={handleAbrirCameraIA}
-                onAbrirBuscaManual={() => setModalBuscaManualAberto(true)}
+                onAbrirBuscaManual={handleAbrirBuscaManual}
               />
               <HydrationTracker />
             </div>
@@ -567,6 +573,7 @@ export default function App() {
       <ManualFoodSearchModal
         aberto={modalBuscaManualAberto}
         onFechar={() => setModalBuscaManualAberto(false)}
+        categoriaInicial={categoriaBuscaManual}
       />
 
       <FreeHostingGuideModal

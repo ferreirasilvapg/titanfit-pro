@@ -10,6 +10,7 @@ import {
   Dna,
   Wheat,
   Droplet,
+  Droplets,
   Salad,
   Trash2,
   PieChart,
@@ -19,7 +20,7 @@ import {
 
 interface Props {
   onAbrirCameraIA: () => void;
-  onAbrirBuscaManual: () => void;
+  onAbrirBuscaManual: (categoriaPadrao?: string) => void;
 }
 
 export const MacroConsumptionChart: React.FC<Props> = ({
@@ -116,10 +117,18 @@ export const MacroConsumptionChart: React.FC<Props> = ({
               <span>Câmera IA</span>
             </button>
             <button
-              onClick={onAbrirBuscaManual}
-              className="bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs px-3 py-1.5 rounded-xl border border-slate-700 transition cursor-pointer"
+              onClick={() => onAbrirBuscaManual('bebida')}
+              className="bg-blue-600/90 hover:bg-blue-500 text-white font-bold text-xs px-2.5 py-1.5 rounded-xl border border-blue-500/40 transition cursor-pointer flex items-center gap-1 shadow-sm"
+              title="Registrar água, sucos, leite, café, refrigerante, cerveja, whey ou azeite"
             >
-              + Alimento
+              <Droplets className="w-3.5 h-3.5 text-blue-300" />
+              <span>+ Bebida / Líquido</span>
+            </button>
+            <button
+              onClick={() => onAbrirBuscaManual('todos')}
+              className="bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs px-2.5 py-1.5 rounded-xl border border-slate-700 transition cursor-pointer flex items-center gap-1"
+            >
+              <span>+ Alimento</span>
             </button>
           </div>
         </div>

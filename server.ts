@@ -214,10 +214,10 @@ app.post('/api/scan-meal', async (req, res) => {
       try {
         const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
 
-        const prompt = `Você é um nutricionista esportivo especializado em visão computacional e análise de alimentos conforme a tabela TACO e USDA.
+        const prompt = `Você é um nutricionista esportivo especializado em visão computacional e análise de alimentos e bebidas conforme a tabela TACO e USDA.
 Analise detalhadamente a foto fornecida.
-Identifique com precisão todos os alimentos presentes no prato (incluindo qualquer doce, fruta, verdura, legume, carne, grão ou sobremesa).
-Estime a porção em gramas de cada componente e calcule os macronutrientes totais com 100% de rigor científico:
+Identifique com precisão todos os alimentos e bebidas presentes (incluindo líquidos como sucos, leite, café, cerveja, refrigerante, shake de whey protein, azeites/molhos, caldos ou sopas, bem como sólidos: carnes, ovos, arroz, feijão, pão, frutas, verduras, legumes, doces e sobremesas).
+Estime a porção de cada componente (em gramas para sólidos e em ml/copos/xícaras/colheres para líquidos) e calcule os macronutrientes totais com 100% de rigor científico:
 1. Proteínas totais (g)
 2. Carboidratos totais (g)
 3. Gorduras totais (g)
@@ -226,17 +226,17 @@ Estime a porção em gramas de cada componente e calcule os macronutrientes tota
 
 Responda ESTRITAMENTE em formato JSON com o seguinte esquema (sem blocos markdown adicionais):
 {
-  "nomePrato": "Nome descritivo e completo da refeição ou sobremesa/lanche em português",
+  "nomePrato": "Nome descritivo e completo da refeição, bebida ou sobremesa em português",
   "calorias": 450,
   "proteinas": 35.5,
   "carboidratos": 42.0,
   "gorduras": 12.0,
   "fibras": 5.5,
   "alimentosDetectados": [
-    "Item 1 (~150g)",
-    "Item 2 (~100g)"
+    "Item 1 (~150g ou ~200ml)",
+    "Item 2 (~100g ou 1 copo)"
   ],
-  "dicaNutricional": "Dica prática para hipertrofia, emagrecimento ou balanço de fibras sobre esta refeição",
+  "dicaNutricional": "Dica prática para hipertrofia, emagrecimento, hidratação ou balanço de fibras sobre esta refeição",
   "confianca": 0.98
 }`;
 
