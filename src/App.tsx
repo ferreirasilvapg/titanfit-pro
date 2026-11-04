@@ -61,6 +61,7 @@ import {
   ExternalLink,
   Activity,
   ShieldCheck,
+  RotateCw,
 } from 'lucide-react';
 
 export default function App() {
@@ -129,6 +130,32 @@ export default function App() {
       cancelarComercial();
     };
   }, []);
+
+  const [atualizandoApp, setAtualizandoApp] = useState(false);
+
+  /**
+   * Força a limpeza total do cache PWA/ServiceWorker e recarrega a versão mais recente
+   */
+  const handleForcarAtualizacaoPWA = async () => {
+    setAtualizandoApp(true);
+    try {
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const reg of registrations) {
+          await reg.unregister();
+        }
+      }
+    } catch (e) {
+      console.warn('Erro ao limpar cache local:', e);
+    }
+    // Força o navegador a buscar a versão nova com timestamp no URL
+    window.location.href = window.location.pathname + '?v=' + Date.now();
+  };
+
 
   /**
    * Verificação de Segurança de Acesso à Câmera IA de Alimentos
@@ -292,6 +319,19 @@ export default function App() {
               <Cloud className={`w-3.5 h-3.5 flex-shrink-0 ${sincronizandoNuvem ? 'animate-spin text-cyan-400' : 'text-cyan-400'}`} />
               <span className="hidden md:inline">
                 {avisoSucessoNuvem ? 'Nuvem OK!' : sincronizandoNuvem ? 'Sincronizando...' : 'Nuvem'}
+              </span>
+            </button>
+
+            {/* Botão de Forçar Atualização / Limpar Cache PWA (v4.0) */}
+            <button
+              onClick={handleForcarAtualizacaoPWA}
+              disabled={atualizandoApp}
+              className="flex items-center gap-1 bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-emerald-400 border border-slate-700 p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer"
+              title="Limpar Cache do Navegador e Carregar Última Versão"
+            >
+              <RotateCw className={`w-3.5 h-3.5 flex-shrink-0 text-emerald-400 ${atualizandoApp ? 'animate-spin' : ''}`} />
+              <span className="text-[11px] font-bold text-emerald-400">
+                {atualizandoApp ? 'Atualizando...' : 'v4.0'}
               </span>
             </button>
 

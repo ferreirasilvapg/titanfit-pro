@@ -1,9 +1,10 @@
 /**
- * Service Worker TitanFit - PWA Offline & Caching Engine
+ * Service Worker TitanFit - PWA Offline & Caching Engine (v4)
  * Atende aos requisitos de instalação imediata no Android/iOS (PWA Standalone)
+ * Com estratégia Network-First para documentos HTML evitando retenção de versões antigas
  */
 
-const CACHE_NAME = 'titanfit-cache-v3';
+const CACHE_NAME = 'titanfit-cache-v4';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -26,23 +27,23 @@ const STATIC_ASSETS = [
   '/exercises/leg-press.gif'
 ];
 
-// Instalação do Service Worker e precache resiliente dos ativos estáticos
+// Instalação do Service Worker e ativação imediata
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
       for (const asset of STATIC_ASSETS) {
         try {
           await cache.add(asset);
         } catch (err) {
-          console.warn('[SW] Ativo ignorado no precache (será buscado via rede):', asset);
+          // Ativo ignorado no precache, será buscado via rede sob demanda
         }
       }
     })
   );
-  self.skipWaiting();
 });
 
-// Ativação e limpeza de caches legados
+// Ativação e limpeza forçada de caches legados
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -53,16 +54,48 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Estratégia de requisição resiliente: Cache First para imagens estáticas, Network First para APIs
+// Comunicação para comandos de atualização forçada
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.action === 'skipWaiting') {
+    self.skipWaiting();
+  }
+  if (event.data && event.data.action === 'clearCache') {
+    caches.keys().then((keys) => {
+      Promise.all(keys.map((k) => caches.delete(k)));
+    });
+  }
+});
+
+// Estratégia de requisição
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
 
-  // Não intercepta chamadas de API
+  // Não intercepta chamadas de API do servidor
   if (url.pathname.startsWith('/api/')) return;
 
-  // Para imagens e GIFs de exercícios: Cache First com fallback instantâneo para rede
+  // 1. NAVEGAÇÃO E PÁGINAS HTML: NETWORK-FIRST (Sempre busca a versão mais recente primeiro)
+  const isNavigation = event.request.mode === 'navigate' || event.request.headers.get('accept')?.includes('text/html');
+  if (isNavigation) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return networkResponse;
+        })
+        .catch(() => {
+          // Se estiver 100% offline sem internet, aí sim usa o cache local
+          return caches.match('/index.html').then((cached) => cached || caches.match('/'));
+        })
+    );
+    return;
+  }
+
+  // 2. IMAGENS E GIFS: CACHE-FIRST com fallback rápido para rede
   if (
     event.request.destination === 'image' ||
     url.pathname.endsWith('.gif') ||
@@ -79,24 +112,22 @@ self.addEventListener('fetch', (event) => {
             caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
           }
           return networkResponse;
-        });
+        }).catch(() => null);
       })
     );
     return;
   }
 
-  // Para páginas e outros recursos
+  // 3. DEMAIS ARQUIVOS (JS/CSS versionados pelo Vite): Network first com fallback
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return (
-        cached ||
-        fetch(event.request).catch(() => {
-          if (event.request.headers.get('accept')?.includes('text/html')) {
-            return caches.match('/index.html');
-          }
-          return null;
-        })
-      );
-    })
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return networkResponse;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
